@@ -36,8 +36,23 @@ dependencies {
     // Source: https://mvnrepository.com/artifact/org.postgresql/postgresql
     implementation group: 'org.postgresql', name: 'postgresql', version: '42.7.9'
 
+    // Lombok 設定
     compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.42'
     annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.42'
+
+    // ✅ 新增：測試用的 Lombok (如果你在 Test 類別中也想用 @Slf4j 或 @Builder)
+    testCompileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.42'
+    testAnnotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.42'
+
+    // ----- 測試依賴 -----
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // ✅ Spring Security 測試支援 (支援 @WithMockUser, csrf() 等)
+    testImplementation 'org.springframework.security:spring-security-test'
+
+    // ✅ H2 資料庫 (如果你想做 Repository 的 @DataJpaTest 且不想連真實 Postgres)
+     testRuntimeOnly 'com.h2database:h2'
 }
 
 tasks.named('test') {
@@ -53,4 +68,26 @@ jar {
 
 bootJar {
     enabled = true // 這是原本的可執行檔
+}
+
+// 自定義一個 Task 叫做 'integrationTest'
+tasks.register('integrationTest', Test) {
+    // 使用 JUnit 5
+    useJUnitPlatform()
+
+    // 設定群組與描述 (方便在 IDE Gradle 面板找到)
+    group = 'verification'
+    description = 'Runs integration tests with H2 database.'
+
+    // 強制指定使用 'test' profile (確保讀取到 application-test.yml)
+    systemProperty 'spring.profiles.active', 'test'
+
+    // 如果你想區分測試，可以用 include/exclude
+    // 例如：只跑結尾是 IntegrationTest 的檔案
+    // include '**/*IntegrationTest.class'
+
+    // 讓測試輸出更漂亮一點
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
 }
