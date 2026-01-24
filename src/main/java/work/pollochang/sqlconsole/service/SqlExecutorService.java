@@ -10,8 +10,8 @@ import work.pollochang.sqlconsole.repository.DbConfigRepository;
 import work.pollochang.sqlconsole.repository.SqlHistoryRepository;
 import work.pollochang.sqlconsole.model.dto.SqlResult;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.SQLException;
 
 /**
  * 處理 SQL 解析、執行與審核。
@@ -24,8 +24,13 @@ public class SqlExecutorService {
     @Autowired private DbConfigRepository dbConfigRepo;
     @Autowired private SqlHistoryRepository historyRepo;
     @Autowired private DbSessionService dbSessionService;
+    @Autowired private JdbcExecutor jdbcExecutor; // ✅ 注入新的 Helper
 
-    // 判斷是否為敏感操作
+    /**
+     * 判斷是否為敏感操作
+     * @param sql
+     * @return
+     */
     private boolean isRestricted(String sql) {
         String upper = sql.trim().toUpperCase();
         return upper.startsWith("INSERT") || upper.startsWith("UPDATE") ||
@@ -52,7 +57,13 @@ public class SqlExecutorService {
         return executeRawSql(session, config, sql, username, false);
     }
 
-    // 執行 TCL 指令
+    /**
+     * 執行 TCL 指令
+     * @param session
+     * @param config
+     * @param commit
+     * @return
+     */
     private SqlResult executeTcl(HttpSession session, DbConfig config, boolean commit) {
         try {
             Connection conn = dbSessionService.getConnection(session, config);
@@ -69,40 +80,28 @@ public class SqlExecutorService {
      */
     public SqlResult executeRawSql(HttpSession session, DbConfig config, String sql, String executor, boolean autoCommitAfterExec) {
         String status = "SUCCESS";
-        String msg = "Execution OK";
-        List<String> columns = new ArrayList<>();
-        List<Map<String, Object>> rows = new ArrayList<>();
-
+        String msg;
+        SqlResult result = null;
         Connection conn = null;
-        String executableSql = sql.trim();
-        if (executableSql.endsWith(";")) {
-            executableSql = executableSql.substring(0, executableSql.length() - 1);
-        }
 
         try {
             conn = dbSessionService.getConnection(session, config);
-            try (Statement stmt = conn.createStatement()) {
-                boolean hasResultSet = stmt.execute(executableSql);
-                if (hasResultSet) {
-                    try (ResultSet rs = stmt.getResultSet()) {
-                        ResultSetMetaData meta = rs.getMetaData();
-                        int colCount = meta.getColumnCount();
-                        for (int i = 1; i <= colCount; i++) columns.add(meta.getColumnLabel(i));
-                        while (rs.next()) {
-                            Map<String, Object> row = new LinkedHashMap<>();
-                            for (String col : columns) row.put(col, rs.getObject(col));
-                            rows.add(row);
-                        }
-                        msg = "Query returned " + rows.size() + " rows.";
-                    }
-                } else {
-                    msg = "Affected rows: " + stmt.getUpdateCount();
-                }
-            }
 
+            // ✅ 將繁瑣的 JDBC 操作委派給 JdbcExecutor
+            result = jdbcExecutor.executeSql(conn, sql);
+            msg = result.message();
+
+            // 處理自動 Commit (針對審核通過的工單)
             if (autoCommitAfterExec && !conn.getAutoCommit()) {
                 conn.commit();
                 msg += " (Auto Committed by System)";
+                // 更新 Result 的訊息
+                result = new SqlResult(
+                        result.status(),
+                        msg,
+                        result.columns(),
+                        result.rows()
+                );
             }
 
         } catch (SQLException e) {
@@ -119,9 +118,10 @@ public class SqlExecutorService {
                     log.error("Rollback failed", ex);
                 }
             }
+            result = new SqlResult("ERROR", msg, null, null);
         }
 
         historyRepo.save(new SqlHistory(executor, config.getName(), sql, status));
-        return new SqlResult(status, msg, columns, rows);
+        return result;
     }
 }

@@ -9,7 +9,7 @@ spring:
 
   datasource:
     url: jdbc:postgresql://localhost:5432/sql_console_sys
-    username: polloconsole
+    username: sqlconsole
     password: password
     driver-class-name: org.postgresql.Driver
 
