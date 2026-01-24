@@ -1,0 +1,56 @@
+plugins {
+    id 'java'
+    id 'war'
+    id 'org.springframework.boot' version '3.5.10'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'work.pollochang.sqlconsole'
+version = '0.0.1-SNAPSHOT'
+description = 'sqlconsole'
+
+java {
+    toolchain {
+        // 改用這個 (指定編譯出的版本相容性)
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    implementation 'org.springframework.boot:spring-boot-starter-tomcat'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // Source: https://mvnrepository.com/artifact/org.postgresql/postgresql
+    implementation group: 'org.postgresql', name: 'postgresql', version: '42.7.9'
+
+    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.42'
+    annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.42'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+
+jar {
+    enabled = true
+    // Spring Boot 2.5+ 不需要特別 classifier，預設 jar task 就是 plain
+    // 但為了保險起見，確保 bootJar 和 jar 共存
+}
+
+bootJar {
+    enabled = true // 這是原本的可執行檔
+}

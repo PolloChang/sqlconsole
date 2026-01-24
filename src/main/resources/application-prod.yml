@@ -1,0 +1,27 @@
+---
+# ==========================================
+# 4. 生產環境 (Production)
+# 啟動參數: --spring.profiles.active=prod
+# ==========================================
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    # 支援透過環境變數注入，更安全
+    url: ${DB_URL:jdbc:postgresql://prod-db-server:5432/sql_console_prod}
+    username: ${DB_USER:prod_user}
+    password: ${DB_PWD:prod_password}
+    hikari:
+      maximum-pool-size: 50 # 生產環境加大連線池
+      minimum-idle: 10
+
+  jpa:
+    show-sql: false # 生產環境嚴禁印 SQL，效能會變差
+
+logging:
+  file:
+    name: /var/log/sqlconsole/app.log # 生產環境寫入檔案
+  level:
+    root: WARN # 只紀錄警告以上

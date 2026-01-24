@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Java Master SQL Console</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <meta charset="UTF-8">
+</head>
+<body>
+<h1>SQL 執行控制台</h1>
+<div>
+    登入者: <span th:text="${username}"></span>
+    角色: <span th:text="${role}"></span>
+    <a href="/logout">登出</a>
+</div>
+<hr/>
+
+<div th:if="${role == 'ROLE_AUDITOR'}">
+    <h3>待審核工單</h3>
+    <table border="1">
+        <tr><th>ID</th><th>申請人</th><th>SQL</th><th>動作</th></tr>
+        <tr th:each="task : ${tasks}">
+            <td th:text="${task.id}"></td>
+            <td th:text="${task.requester}"></td>
+            <td th:text="${task.sqlContent}"></td>
+            <td><button th:onclick="'approveTask(' + ${task.id} + ')'">批准並執行</button></td>
+        </tr>
+    </table>
+    <hr/>
+</div>
+
+<h3>SQL 操作</h3>
+<form id="sqlForm" onsubmit="return false;">
+    選擇資料庫:
+    <select id="dbId">
+        <option th:each="db : ${dbs}" th:value="${db.id}" th:text="${db.name}"></option>
+    </select>
+    <br/><br/>
+    <textarea id="sqlContent" rows="8" cols="80" placeholder="輸入 SQL..."></textarea>
+    <br/>
+    <button onclick="doSql('EXEC')">執行 SQL</button>
+    <button onclick="doSql('COMMIT')">COMMIT</button>
+    <button onclick="doSql('ROLLBACK')">ROLLBACK</button>
+</form>
+
+<h3>結果</h3>
+<div id="msgArea"></div>
+<div id="resultTable"></div>
+
+<script>
+    function doSql(action) {
+        let sql = (action === 'EXEC') ? $("#sqlContent").val() : action;
+        let dbId = $("#dbId").val();
+
+        $.post("/api/execute", { dbId: dbId, sql: sql }, function(res) {
+            renderResult(res);
+        });
+    }
+
+    function approveTask(taskId) {
+        $.ajax({
+            type: "POST",
+            url: "/api/approve",
+            data: { taskId: taskId },
+            dataType: "json", // 關鍵 1: 強制告訴 jQuery 這是 JSON，不要當字串
+            success: function(res) {
+                console.log("Server Response:", res); // 關鍵 2: 在 F12 Console 印出結果方便除錯
+
+                if (res && res.message) {
+                    alert(res.message);
+                } else {
+                    // 如果 res 是物件但沒 message，或是其他怪怪的狀況
+                    alert("執行完成，但無回傳訊息。\n詳細: " + JSON.stringify(res));
+                }
+                location.reload();
+            },
+            error: function(xhr, status, error) {
+                // 關鍵 3: 如果後端炸掉 (500) 或權限不足 (403)，會走這裡
+                console.error("Error:", xhr);
+                alert("發生錯誤 (Status: " + xhr.status + ")\n" + xhr.responseText);
+            }
+        });
+    }
+
+    function renderResult(res) {
+        let color = res.status === 'SUCCESS' ? 'green' : (res.status === 'PENDING' ? 'orange' : 'red');
+        $("#msgArea").html(`<b style='color:${color}'>[${res.status}] ${res.message}</b>`);
+        $("#resultTable").empty();
+
+        if (res.columns && res.columns.length > 0) {
+            let html = "<table border='1'><thead><tr>";
+            res.columns.forEach(col => html += `<th>${col}</th>`);
+            html += "</tr></thead><tbody>";
+            res.rows.forEach(row => {
+                html += "<tr>";
+                res.columns.forEach(col => html += `<td>${row[col]}</td>`);
+                html += "</tr>";
+            });
+            html += "</tbody></table>";
+            $("#resultTable").html(html);
+        }
+    }
+</script>
+</body>
+</html>

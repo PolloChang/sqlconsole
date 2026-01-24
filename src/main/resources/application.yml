@@ -1,0 +1,39 @@
+# ==========================================
+# 1. 全域通用設定 (Default / Common)
+# 這裡放不管是 Dev 還是 Prod 都一樣的設定
+# ==========================================
+spring:
+  profiles:
+    active: prod # 預設啟用 prod，除非外部指令覆蓋它
+  application:
+    name: sqlconsole
+
+
+  hibernate:
+    cache:
+      queries: false
+      use_second_level_cache: false
+      use_query_cache: false
+
+
+
+  # JPA Settings
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # Thymeleaf
+  thymeleaf:
+    cache: false
+---
+logging:
+  level:
+    root: INFO
+    # 讓 Hibernate 的 SQL 顯示簡單一點，不要印出一堆底層細節
+    org.hibernate.orm.connections.pooling: WARN
+    # 如果你也想隱藏 HikariCP 的啟動訊息，可以加這行
+    com.zaxxer.hikari: WARN

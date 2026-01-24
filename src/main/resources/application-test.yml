@@ -1,0 +1,16 @@
+# ==========================================
+# 3. 測試環境 (Test)
+# 啟動參數: --spring.profiles.active=test
+# ==========================================
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  datasource:
+    url: jdbc:postgresql://192.168.1.50:5432/sql_console_test
+    username: test_user
+    password: test_password
+
+  jpa:
+    show-sql: false

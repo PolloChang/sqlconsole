@@ -1,0 +1,27 @@
+# ==========================================
+# 2. 開發環境 (Development)
+# 啟動參數: --spring.profiles.active=dev
+# ==========================================
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/sql_console_sys
+    username: polloconsole
+    password: password
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update # 開發環境允許自動更新 Table
+    show-sql: true     # 開發環境要看 SQL
+    properties:
+      hibernate:
+        format_sql: true
+
+
+logging:
+  level:
+    work.pollochang: DEBUG # 開發時顯示自己的除錯訊息
