@@ -3,11 +3,17 @@ plugins {
     id 'war'
     id 'org.springframework.boot' version '3.5.10'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
 }
 
 group = 'work.pollochang.sqlconsole'
 version = '0.0.1-SNAPSHOT'
 description = 'sqlconsole'
+
+// 設定 JaCoCo 版本
+jacoco {
+    toolVersion = "0.8.12" // 支援 Java 21 的版本
+}
 
 java {
     toolchain {
@@ -91,3 +97,47 @@ tasks.register('integrationTest', Test) {
         events "passed", "skipped", "failed"
     }
 }
+
+// 設定報表生成邏輯
+jacocoTestReport {
+    // 讓報表同時包含單元測試與整合測試的結果
+    executionData(test, integrationTest)
+
+    reports {
+        xml.required = true
+        csv.required = false
+        html.outputLocation = layout.buildDirectory.dir('reports/jacoco')
+        // 可選：自定義產出路徑 (預設會在 build/reports/jacoco/test/)
+        // xml.outputLocation = layout.buildDirectory.file('reports/jacoco/jacocoTestReport.xml')
+    }
+
+    // 在產生報表前，確保測試已經跑過
+    dependsOn test, integrationTest
+
+    //排除不需要統計的類別
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                    "**/model/entity/*",
+                    "**/model/dto/*",
+                    "**/config/*"
+            ])
+        }))
+    }
+}
+
+tasks.named('test') {
+    finalizedBy jacocoTestReport
+}
+
+// (選填) 設定涵蓋率門檻，未達標則編譯失敗
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.50 // 期望涵蓋率至少 50%
+            }
+        }
+    }
+}
+
