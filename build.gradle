@@ -4,6 +4,11 @@ plugins {
     id 'org.springframework.boot' version '3.5.10'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'jacoco'
+    id 'org.owasp.dependencycheck' version '12.2.0'
+
+    id 'checkstyle' //檢查程式碼風格
+    id 'com.diffplug.spotless' version '8.1.0' // ✅ 自動格式化神器
+    id 'pmd' //找出潛在 Bug 與不良實踐
 }
 
 group = 'work.pollochang.sqlconsole'
@@ -13,6 +18,41 @@ description = 'sqlconsole'
 // 設定 JaCoCo 版本
 jacoco {
     toolVersion = "0.8.12" // 支援 Java 21 的版本
+}
+
+// Checkstyle 設定
+checkstyle {
+    toolVersion = '10.12.5'
+    // 預設會去找 config/checkstyle/checkstyle.xml
+    // 如果你想用 Google 的風格，可以設定 ignoreFailures = false 讓風格不符時建置失敗
+//    https://github.com/checkstyle/checkstyle/blob/master/src/main/resources/google_checks.xml
+    configFile = file("${rootDir}/config/checkstyle/google_checks.xml")
+    ignoreFailures = true // ❌ 強制約束：不符合樣式就讓 Build 失敗
+    maxWarnings = 0
+}
+
+// 2. Spotless 設定：用於「一鍵修復」符合 Google Style
+spotless {
+    java {
+        target 'src/*/java/**/*.java'
+        googleJavaFormat('1.21.0') // ✅ 指定使用 Google Java Format 版本
+        removeUnusedImports()      // 自動移除沒用的 import
+        trimTrailingWhitespace()   // 移除行尾空格
+        endWithNewline()           // 檔案結尾強制換行
+    }
+}
+
+// PMD 設定
+pmd {
+    toolVersion = "7.0.0"
+    ignoreFailures = true
+    ruleSets = [
+            "category/java/bestpractices.xml",
+            "category/java/codestyle.xml",
+            "category/java/design.xml",
+            "category/java/errorprone.xml",
+            "category/java/performance.xml"
+    ]
 }
 
 java {
@@ -50,6 +90,11 @@ dependencies {
     testCompileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.42'
     testAnnotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.42'
 
+    // 如果是 Spring Boot 帶進來的 log4j，可以用 properties 覆寫 (推薦做法)
+    // 或是直接在 dependencies 宣告最新版
+    implementation 'org.apache.logging.log4j:log4j-api:2.25.3'
+    implementation 'org.apache.logging.log4j:log4j-core:2.25.3'
+
     // ----- 測試依賴 -----
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -58,7 +103,7 @@ dependencies {
     testImplementation 'org.springframework.security:spring-security-test'
 
     // ✅ H2 資料庫 (如果你想做 Repository 的 @DataJpaTest 且不想連真實 Postgres)
-     testRuntimeOnly 'com.h2database:h2'
+    testRuntimeOnly 'com.h2database:h2'
 }
 
 tasks.named('test') {
@@ -128,6 +173,8 @@ jacocoTestReport {
 
 tasks.named('test') {
     finalizedBy jacocoTestReport
+    // 讓 integrationTest 執行完後自動跑安全掃描
+    finalizedBy 'dependencyCheckAnalyze'
 }
 
 // (選填) 設定涵蓋率門檻，未達標則編譯失敗
@@ -141,3 +188,25 @@ jacocoTestCoverageVerification {
     }
 }
 
+dependencyCheck {
+    // 設定報表格式 (HTML 用於閱讀，JSON/XML 用於 CI/CD)
+    formats = ['HTML', 'JSON']
+
+    // 如果漏洞分數 (CVSS) 超過 7.0 (高風險)，則讓建置失敗
+    failBuildOnCVSS = 7.0f
+
+    scanConfigurations = ['runtimeClasspath']
+
+    nvd {
+        apiKey = System.getenv('NVD_API_KEY') ?: "YOUR_KEY_HERE"
+        delay = 16000 // 增加請求間隔，避免被封鎖
+    }
+
+    // 設定掃描排除項目 (選填)
+    analyzers {
+        ossIndexEnabled = false // 關閉需要密碼的 OSS Index
+        centralEnabled = true   // 開啟 Maven Central 檢查
+    }
+
+    // suppressionFile = 'config/dependency-check/suppressions.xml'
+}
