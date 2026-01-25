@@ -1,17 +1,15 @@
 import {EditorView, basicSetup} from "codemirror"
-import {EditorState, Prec} from "@codemirror/state"
+import {EditorState, Prec, Compartment} from "@codemirror/state"
 import {keymap} from "@codemirror/view"
 import {sql} from "@codemirror/lang-sql"
 import {defaultKeymap} from "@codemirror/commands"
 import {acceptCompletion, completionStatus} from "@codemirror/autocomplete"
 
-// Context-Aware Schema with Table Names
-const schema = {
-    "sys_users": ["id", "username", "password", "role"],
-    "db_configs": ["id", "name", "jdbc_url", "db_user", "db_password"],
-    "sql_history": ["id", "executor", "db_name", "sql_content", "status", "created_at"],
-    "USER_TABLES": [], // Generic suggestion
-};
+// Language Compartment for dynamic schema updates
+const languageConf = new Compartment;
+
+// Initial Schema (empty)
+const initialSchema = {};
 
 // Smart SQL Extraction
 function getSmartSql(view) {
@@ -45,6 +43,21 @@ function getSmartSql(view) {
 // Global hook for doSql to access
 window.getSmartSql = () => getSmartSql(window.editorView);
 
+// Global hook to update schema
+window.updateEditorSchema = (tableList) => {
+    const newSchema = {};
+    if (tableList && Array.isArray(tableList)) {
+        tableList.forEach(t => {
+            newSchema[t] = []; // We could fetch columns later if needed
+        });
+    }
+
+    window.editorView.dispatch({
+        effects: languageConf.reconfigure(sql({schema: newSchema, upperCaseKeywords: true}))
+    });
+    console.log("Editor schema updated with tables:", tableList);
+};
+
 // Command Handlers
 const runQuery = (view) => {
     window.doSql('EXEC');
@@ -66,26 +79,23 @@ const handleEnter = (view) => {
     if (completionStatus(view.state) === "active") {
         return acceptCompletion(view);
     }
-    // Otherwise, Enter triggers EXEC (as requested)
-    // Note: To insert a newline, user might need Shift-Enter if we enforce this strictly.
-    // However, the requirement is "Triggered by Enter when no suggestion menu is visible".
-    window.doSql('EXEC');
-    return true;
+    // Otherwise, default Enter behavior (insert newline)
+    return false;
 };
 
 const myKeymap = [
     {key: "Ctrl-Enter", run: runQuery},
+    {key: "Enter", run: handleEnter},
     {key: "Ctrl-[", run: commitTx},
     {key: "Ctrl-]", run: rollbackTx}
-    // 這裡不要寫 Enter，讓 basicSetup 處理正常的 Enter 換行與補全選取
 ];
 
 window.editorView = new EditorView({
-    doc: "-- Enter SQL here...",
+    doc: "-- Select a DB and start typing...",
     extensions: [
-        Prec.highest(keymap.of(myKeymap)), // Force highest priority
+        Prec.highest(keymap.of(myKeymap)),
         basicSetup,
-        sql({schema: schema, upperCaseKeywords: true})
+        languageConf.of(sql({schema: initialSchema, upperCaseKeywords: true}))
     ],
     parent: document.getElementById("editor")
 });

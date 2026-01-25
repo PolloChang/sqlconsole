@@ -59,4 +59,10 @@ public class ConsoleController {
         // 因為具體的「撈工單 -> 執行」邏輯現在在 Premium 專案裡
         return auditService.executeApprovedTask(taskId, auth.getName());
     }
+
+    @GetMapping("/api/tables")
+    @ResponseBody
+    public List<String> getTables(@RequestParam Long dbId, HttpSession session) {
+        return sqlService.getTableNames(dbId, session);
+    }
 }

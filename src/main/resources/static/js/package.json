@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "description": "CodeMirror 6 bundle for SQL Console",
   "main": "editor.js",
-  "scripts": {
-    "build": "esbuild editor.js --bundle --outfile=editor.bundle.js --format=esm"
-  },
   "dependencies": {
     "codemirror": "^6.0.1",
     "@codemirror/view": "^6.24.0",

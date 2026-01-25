@@ -12,6 +12,9 @@ import work.pollochang.sqlconsole.model.dto.SqlResult;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 處理 SQL 解析、執行與審核。
@@ -25,6 +28,42 @@ public class SqlExecutorService {
     @Autowired private SqlHistoryRepository historyRepo;
     @Autowired private DbSessionService dbSessionService;
     @Autowired private JdbcExecutor jdbcExecutor; // ✅ 注入新的 Helper
+
+    public List<String> getTableNames(Long dbId, HttpSession session) {
+        DbConfig config = dbConfigRepo.findById(dbId).orElseThrow(() -> new RuntimeException("DB Not Found"));
+        String url = config.getJdbcUrl().toLowerCase();
+        String sql = "";
+
+        if (url.contains(":oracle:")) {
+            sql = "SELECT table_name FROM user_tables ORDER BY table_name";
+        } else if (url.contains(":postgresql:")) {
+            sql = "SELECT table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'pg_catalog') AND table_type = 'BASE TABLE' ORDER BY table_name";
+        } else if (url.contains(":db2:")) {
+            sql = "SELECT TABNAME FROM SYSCAT.tables WHERE TABSCHEMA = CURRENT schema AND TYPE = 'T'";
+        } else if (url.contains(":sqlserver:")) {
+            sql = "SELECT table_name FROM INFORMATION_SCHEMA.tables WHERE table_type = 'BASE TABLE' AND table_schema = SCHEMA_NAME()";
+        } else if (url.contains(":mysql:")) {
+            sql = "SELECT table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys') ORDER by table_name";
+        } else if (url.contains(":h2:")) {
+            // For testing support
+            sql = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'PUBLIC'";
+        } else {
+            return Collections.emptyList();
+        }
+
+        try {
+            Connection conn = dbSessionService.getConnection(session, config);
+            SqlResult result = jdbcExecutor.executeSql(conn, sql);
+            if ("SUCCESS".equals(result.status()) && result.rows() != null) {
+                return result.rows().stream()
+                        .map(row -> row.values().iterator().next().toString())
+                        .collect(Collectors.toList());
+            }
+        } catch (SQLException e) {
+            log.error("Failed to fetch tables", e);
+        }
+        return Collections.emptyList();
+    }
 
     /**
      * 判斷是否為敏感操作

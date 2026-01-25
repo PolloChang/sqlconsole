@@ -103,4 +103,31 @@ class SqlExecutorServiceTest {
 
         verify(connection).rollback();
     }
+
+    @Test
+    @DisplayName("測試 getTableNames - 應回傳表格清單")
+    void testGetTableNames() throws SQLException {
+        // Arrange
+        Long dbId = 1L;
+        DbConfig mockConfig = new DbConfig();
+        mockConfig.setName("TestDB");
+        mockConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/testdb"); // Postgres Type
+
+        when(dbConfigRepo.findById(dbId)).thenReturn(Optional.of(mockConfig));
+        when(dbSessionService.getConnection(session, mockConfig)).thenReturn(connection);
+
+        // Mock JDBC Result
+        SqlResult mockResult = new SqlResult("SUCCESS", null, "OK", List.of("table_name"),
+                List.of(Map.of("table_name", "users"), Map.of("table_name", "orders")));
+
+        when(jdbcExecutor.executeSql(eq(connection), contains("information_schema"))).thenReturn(mockResult);
+
+        // Act
+        List<String> tables = sqlExecutorService.getTableNames(dbId, session);
+
+        // Assert
+        assertEquals(2, tables.size());
+        assertEquals("users", tables.get(0));
+        assertEquals("orders", tables.get(1));
+    }
 }

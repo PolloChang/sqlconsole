@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>Java Master SQL Console</title>
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="/js/jquery-3.7.1.min.js"></script>
     <meta charset="UTF-8">
     <script type="module" src="/js/editor.bundle.js"></script>
     <style>
@@ -37,7 +37,7 @@
 <h3>SQL 操作</h3>
 <form id="sqlForm" onsubmit="return false;">
     選擇資料庫:
-    <select id="dbId">
+    <select id="dbId" onchange="loadTables()">
         <option th:each="db : ${dbs}" th:value="${db.id}" th:text="${db.name}"></option>
     </select>
     <br/><br/>
@@ -54,6 +54,22 @@
 
 
 <script>
+    $(document).ready(function() {
+        // Load tables for the initial selection
+        loadTables();
+    });
+
+    function loadTables() {
+        let dbId = $("#dbId").val();
+        if (!dbId) return;
+
+        $.get("/api/tables", { dbId: dbId }, function(tables) {
+             if (window.updateEditorSchema) {
+                 window.updateEditorSchema(tables);
+             }
+        });
+    }
+
     function doSql(action) {
         let sql = "";
         if (action === 'EXEC') {
