@@ -1,6 +1,5 @@
 package work.pollochang.sqlconsole.service;
 
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -8,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import work.pollochang.sqlconsole.model.entity.User;
 import work.pollochang.sqlconsole.repository.UserRepository;
 
@@ -26,41 +26,39 @@ class AuthServiceTest {
     private UserRepository userRepo;
 
     @Test
-    @DisplayName("載入使用者 - 成功")
     void testLoadUserByUsername_Success() {
         // Arrange
-        String username = "admin";
-        User mockUser = new User();
-        mockUser.setUsername(username);
-        mockUser.setPassword("encodedPwd");
-        mockUser.setRole("ROLE_ADMIN"); // 注意你的程式碼邏輯有 replace("ROLE_", "")
+        User user = new User();
+        user.setUsername("admin");
+        user.setPassword("hashed_pw");
+        user.setRole("ROLE_ADMIN");
 
-        when(userRepo.findByUsername(username)).thenReturn(Optional.of(mockUser));
+        when(userRepo.findByUsername("admin")).thenReturn(Optional.of(user));
 
         // Act
-        UserDetails userDetails = authService.loadUserByUsername(username);
+        UserDetails userDetails = authService.loadUserByUsername("admin");
 
         // Assert
-        assertNotNull(userDetails);
-        assertEquals(username, userDetails.getUsername());
-        assertEquals("encodedPwd", userDetails.getPassword());
-
-        // 驗證 Role 是否正確處理 (Spring Security Builder 會自動加上 ROLE_ 前綴，但你的程式邏輯是移除它再塞進去)
-        // 這裡檢查 Authorities 是否包含我們預期的權限
+        assertEquals("admin", userDetails.getUsername());
+        assertEquals("hashed_pw", userDetails.getPassword());
+        // 驗證 ROLE_ 首碼是否被正確移除或處理 (Spring Security builder 會自動加回 ROLE_ 前綴)
+        // 這裡 builder.roles("ADMIN") 會產生 Authority "ROLE_ADMIN"
         assertTrue(userDetails.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")));
     }
 
     @Test
-    @DisplayName("載入使用者 - 失敗 (使用者不存在)")
     void testLoadUserByUsername_NotFound() {
-        // Arrange
-        String username = "ghost";
-        when(userRepo.findByUsername(username)).thenReturn(Optional.empty());
+        when(userRepo.findByUsername("unknown")).thenReturn(Optional.empty());
 
-        // Act & Assert
         assertThrows(UsernameNotFoundException.class, () -> {
-            authService.loadUserByUsername(username);
+            authService.loadUserByUsername("unknown");
         });
+    }
+
+    @Test
+    void testPasswordEncoderBean() {
+        PasswordEncoder encoder = authService.passwordEncoder();
+        assertNotNull(encoder);
     }
 }

@@ -2,14 +2,20 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>Java Master SQL Console</title>
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="/js/jquery-3.7.1.min.js"></script>
     <meta charset="UTF-8">
+    <script type="module" src="/js/editor.bundle.js"></script>
+    <style>
+        .cm-editor { border: 1px solid #ccc; height: 300px; font-size: 14px; background-color: white;}
+        .cm-scroller { overflow: auto; }
+    </style>
 </head>
 <body>
 <h1>SQL 執行控制台</h1>
 <div>
     登入者: <span th:text="${username}"></span>
     角色: <span th:text="${role}"></span>
+    狀態: <span id="txStatus" style="font-weight:bold; color:blue;">COMMITTED</span>
     <a href="/logout">登出</a>
 </div>
 <hr/>
@@ -31,11 +37,11 @@
 <h3>SQL 操作</h3>
 <form id="sqlForm" onsubmit="return false;">
     選擇資料庫:
-    <select id="dbId">
+    <select id="dbId" onchange="loadTables()">
         <option th:each="db : ${dbs}" th:value="${db.id}" th:text="${db.name}"></option>
     </select>
     <br/><br/>
-    <textarea id="sqlContent" rows="8" cols="80" placeholder="輸入 SQL..."></textarea>
+    <div id="editor"></div>
     <br/>
     <button onclick="doSql('EXEC')">執行 SQL</button>
     <button onclick="doSql('COMMIT')">COMMIT</button>
@@ -46,9 +52,33 @@
 <div id="msgArea"></div>
 <div id="resultTable"></div>
 
+
 <script>
+    $(document).ready(function() {
+        // Load tables for the initial selection
+        loadTables();
+    });
+
+    function loadTables() {
+        let dbId = $("#dbId").val();
+        if (!dbId) return;
+
+        $.get("/api/schema", { dbId: dbId }, function(schema) {
+             if (window.updateEditorSchema) {
+                 window.updateEditorSchema(schema);
+             }
+        });
+    }
+
     function doSql(action) {
-        let sql = (action === 'EXEC') ? $("#sqlContent").val() : action;
+        let sql = "";
+        if (action === 'EXEC') {
+            if (window.getSmartSql) {
+                sql = window.getSmartSql();
+            }
+        } else {
+            sql = action;
+        }
         let dbId = $("#dbId").val();
 
         $.post("/api/execute", { dbId: dbId, sql: sql }, function(res) {
@@ -85,6 +115,15 @@
         let color = res.status === 'SUCCESS' ? 'green' : (res.status === 'PENDING' ? 'orange' : 'red');
         $("#msgArea").html(`<b style='color:${color}'>[${res.status}] ${res.message}</b>`);
         $("#resultTable").empty();
+
+        if (res.txStatus) {
+            $("#txStatus").text(res.txStatus);
+            if (res.txStatus === 'UNCOMMIT') {
+                $("#txStatus").css('color', 'red');
+            } else {
+                $("#txStatus").css('color', 'blue');
+            }
+        }
 
         if (res.columns && res.columns.length > 0) {
             let html = "<table border='1'><thead><tr>";

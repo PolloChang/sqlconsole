@@ -19,7 +19,7 @@ public class FreeAuditService implements AuditService {
 
     @Override
     public SqlResult executeApprovedTask(Long taskId, String auditorName) {
-        return new SqlResult("ERROR", "此功能僅限企業版使用", null, null);
+        return new SqlResult("ERROR", "COMMITTED", "此功能僅限企業版使用", null, null);
     }
 
     @Override

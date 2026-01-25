@@ -13,6 +13,7 @@ import work.pollochang.sqlconsole.service.AuditService;
 import work.pollochang.sqlconsole.service.SqlExecutorService;
 
 import java.util.List;
+import java.util.Map;
 
 @Controller
 public class ConsoleController {
@@ -54,9 +55,15 @@ public class ConsoleController {
     public SqlResult approve(@RequestParam Long taskId, Authentication auth, HttpSession session) {
         String role = auth.getAuthorities().stream().findFirst().get().getAuthority();
         if (!role.equals("ROLE_AUDITOR")) {
-            return new SqlResult("ERROR", "無權限", null, null);
+            return new SqlResult("ERROR", "COMMITTED", "無權限", null, null);
         }
         // 因為具體的「撈工單 -> 執行」邏輯現在在 Premium 專案裡
         return auditService.executeApprovedTask(taskId, auth.getName());
+    }
+
+    @GetMapping("/api/schema")
+    @ResponseBody
+    public Map<String, List<String>> getSchema(@RequestParam Long dbId, HttpSession session) {
+        return sqlService.getTableSchema(dbId, session);
     }
 }

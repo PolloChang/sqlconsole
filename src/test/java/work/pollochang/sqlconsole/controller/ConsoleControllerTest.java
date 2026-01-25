@@ -58,7 +58,7 @@ class ConsoleControllerTest {
     @DisplayName("執行 SQL API - 成功")
     void testExecuteApi() throws Exception {
         // Arrange: 模擬 Service 回傳成功結果
-        SqlResult mockResult = new SqlResult("SUCCESS", "OK", null, null);
+        SqlResult mockResult = new SqlResult("SUCCESS", "UNCOMMIT", "OK", null, null);
         when(sqlService.processRequest(any(), any(), any(), any(), any()))
                 .thenReturn(mockResult);
 

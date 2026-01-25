@@ -12,6 +12,10 @@ import work.pollochang.sqlconsole.model.dto.SqlResult;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 處理 SQL 解析、執行與審核。
@@ -25,6 +29,49 @@ public class SqlExecutorService {
     @Autowired private SqlHistoryRepository historyRepo;
     @Autowired private DbSessionService dbSessionService;
     @Autowired private JdbcExecutor jdbcExecutor; // ✅ 注入新的 Helper
+
+    public Map<String, List<String>> getTableSchema(Long dbId, HttpSession session) {
+        DbConfig config = dbConfigRepo.findById(dbId).orElseThrow(() -> new RuntimeException("DB Not Found"));
+        String url = config.getJdbcUrl().toLowerCase();
+        String sql = "";
+
+        // Determine SQL based on DB Type
+        if (url.contains(":oracle:")) {
+            sql = "SELECT table_name, column_name FROM user_tab_columns ORDER BY table_name, column_id";
+        } else if (url.contains(":postgresql:")) {
+            sql = "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema NOT IN ('information_schema', 'pg_catalog') ORDER BY table_name, ordinal_position";
+        } else if (url.contains(":db2:")) {
+            sql = "SELECT tabname AS table_name, colname AS column_name FROM syscat.columns WHERE tabschema = CURRENT SCHEMA ORDER BY tabname, colno";
+        } else if (url.contains(":sqlserver:")) {
+            sql = "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = SCHEMA_NAME() ORDER BY table_name, ordinal_position";
+        } else if (url.contains(":mysql:")) {
+            sql = "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = DATABASE() ORDER BY table_name, ordinal_position";
+        } else if (url.contains(":h2:")) {
+            sql = "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'PUBLIC' ORDER BY table_name, ordinal_position";
+        } else {
+            return Collections.emptyMap();
+        }
+
+        try {
+            Connection conn = dbSessionService.getConnection(session, config);
+            SqlResult result = jdbcExecutor.executeSql(conn, sql);
+
+            if ("SUCCESS".equals(result.status()) && result.rows() != null) {
+                // Group by Table Name
+                return result.rows().stream()
+                        .collect(Collectors.groupingBy(
+                                row -> row.values().stream().findFirst().orElse("UNKNOWN").toString(), // First column is Table
+                                Collectors.mapping(
+                                        row -> row.values().stream().skip(1).findFirst().orElse("UNKNOWN").toString(), // Second column is Column
+                                        Collectors.toList()
+                                )
+                        ));
+            }
+        } catch (SQLException e) {
+            log.error("Failed to fetch schema", e);
+        }
+        return Collections.emptyMap();
+    }
 
     /**
      * 判斷是否為敏感操作
@@ -68,9 +115,9 @@ public class SqlExecutorService {
         try {
             Connection conn = dbSessionService.getConnection(session, config);
             if (commit) conn.commit(); else conn.rollback();
-            return new SqlResult("SUCCESS", commit ? "Commit Success" : "Rollback Success", null, null);
+            return new SqlResult("SUCCESS", "COMMITTED", commit ? "Commit Success" : "Rollback Success", null, null);
         } catch (SQLException e) {
-            return new SqlResult("ERROR", e.getMessage(), null, null);
+            return new SqlResult("ERROR", "UNCOMMIT", e.getMessage(), null, null);
         }
     }
 
@@ -81,6 +128,7 @@ public class SqlExecutorService {
     public SqlResult executeRawSql(HttpSession session, DbConfig config, String sql, String executor, boolean autoCommitAfterExec) {
         String status = "SUCCESS";
         String msg;
+        String txStatus = "UNCOMMIT";
         SqlResult result = null;
         Connection conn = null;
 
@@ -95,30 +143,44 @@ public class SqlExecutorService {
             if (autoCommitAfterExec && !conn.getAutoCommit()) {
                 conn.commit();
                 msg += " (Auto Committed by System)";
-                // 更新 Result 的訊息
-                result = new SqlResult(
-                        result.status(),
-                        msg,
-                        result.columns(),
-                        result.rows()
-                );
             }
+
+            // Determine txStatus
+            if (conn.getAutoCommit()) {
+                txStatus = "COMMITTED";
+            } else {
+                txStatus = "UNCOMMIT";
+            }
+
+            // Rebuild result with txStatus
+            result = new SqlResult(
+                    result.status(),
+                    txStatus,
+                    msg,
+                    result.columns(),
+                    result.rows()
+            );
 
         } catch (SQLException e) {
             status = "ERROR";
             msg = e.getMessage();
+            txStatus = "UNCOMMIT";
+
             if (conn != null) {
                 try {
                     if (!conn.getAutoCommit()) {
                         log.warn("⚠️ SQL Error, Rolling back...");
                         conn.rollback();
                         msg += " (Transaction rolled back)";
+                        txStatus = "COMMITTED";
+                    } else {
+                        txStatus = "COMMITTED";
                     }
                 } catch (SQLException ex) {
                     log.error("Rollback failed", ex);
                 }
             }
-            result = new SqlResult("ERROR", msg, null, null);
+            result = new SqlResult("ERROR", txStatus, msg, null, null);
         }
 
         historyRepo.save(new SqlHistory(executor, config.getName(), sql, status));

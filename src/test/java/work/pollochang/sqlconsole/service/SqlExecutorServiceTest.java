@@ -50,7 +50,7 @@ class SqlExecutorServiceTest {
         when(dbConfigRepo.findById(dbId)).thenReturn(Optional.of(mockConfig));
         when(dbSessionService.getConnection(session, mockConfig)).thenReturn(connection);
 
-        SqlResult expectedResult = new SqlResult("SUCCESS", "Query returned 1 rows",
+        SqlResult expectedResult = new SqlResult("SUCCESS", null, "Query returned 1 rows",
                 List.of("id"),
                 List.of(Map.of("id", 100)));
 
@@ -102,5 +102,61 @@ class SqlExecutorServiceTest {
 
 
         verify(connection).rollback();
+    }
+
+    @Test
+    @DisplayName("測試 getTableSchema - 應回傳表格與欄位對應")
+    void testGetTableSchema() throws SQLException {
+        // Arrange
+        Long dbId = 1L;
+        DbConfig mockConfig = new DbConfig();
+        mockConfig.setName("TestDB");
+        mockConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/testdb"); // Postgres Type
+
+        when(dbConfigRepo.findById(dbId)).thenReturn(Optional.of(mockConfig));
+        when(dbSessionService.getConnection(session, mockConfig)).thenReturn(connection);
+
+        // Mock JDBC Result (Columns)
+        // Expected Query: SELECT table_name, column_name ...
+        SqlResult mockResult = new SqlResult("SUCCESS", null, "OK", List.of("table_name", "column_name"),
+                List.of(
+                        Map.of("table_name", "users", "column_name", "id"),
+                        Map.of("table_name", "users", "column_name", "username"),
+                        Map.of("table_name", "orders", "column_name", "id")
+                ));
+
+        when(jdbcExecutor.executeSql(eq(connection), contains("information_schema"))).thenReturn(mockResult);
+
+        // Act
+        Map<String, List<String>> schema = sqlExecutorService.getTableSchema(dbId, session);
+
+        // Assert
+        assertEquals(2, schema.size());
+        // Map order is not guaranteed, so we check carefully
+        if (schema.containsKey("users")) {
+            assertEquals(2, schema.get("users").size());
+            // Since stream collection doesn't guarantee order unless specifically collected that way,
+            // we should check for containment or ensure the mock result order is preserved.
+            // The service code uses Collectors.mapping(..., toList()), which preserves encounter order.
+            // So if the mock result has id then username, the list should match.
+            // However, verify if 'id' and 'username' are swapped in failure.
+            // Let's print out what we got if it fails, or just assert content.
+            List<String> userCols = schema.get("users");
+            if (userCols.get(0).equals("id")) {
+                assertEquals("id", userCols.get(0));
+                assertEquals("username", userCols.get(1));
+            } else {
+                assertEquals("username", userCols.get(0));
+                assertEquals("id", userCols.get(1));
+            }
+        } else {
+           throw new AssertionError("Schema should contain users");
+        }
+
+        if (schema.containsKey("orders")) {
+             assertEquals(1, schema.get("orders").size());
+        } else {
+             throw new AssertionError("Schema should contain orders");
+        }
     }
 }
