@@ -63,9 +63,9 @@
         let dbId = $("#dbId").val();
         if (!dbId) return;
 
-        $.get("/api/tables", { dbId: dbId }, function(tables) {
+        $.get("/api/schema", { dbId: dbId }, function(schema) {
              if (window.updateEditorSchema) {
-                 window.updateEditorSchema(tables);
+                 window.updateEditorSchema(schema);
              }
         });
     }

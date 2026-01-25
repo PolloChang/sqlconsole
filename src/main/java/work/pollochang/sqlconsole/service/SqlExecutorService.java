@@ -14,6 +14,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -29,40 +30,47 @@ public class SqlExecutorService {
     @Autowired private DbSessionService dbSessionService;
     @Autowired private JdbcExecutor jdbcExecutor; // ✅ 注入新的 Helper
 
-    public List<String> getTableNames(Long dbId, HttpSession session) {
+    public Map<String, List<String>> getTableSchema(Long dbId, HttpSession session) {
         DbConfig config = dbConfigRepo.findById(dbId).orElseThrow(() -> new RuntimeException("DB Not Found"));
         String url = config.getJdbcUrl().toLowerCase();
         String sql = "";
 
+        // Determine SQL based on DB Type
         if (url.contains(":oracle:")) {
-            sql = "SELECT table_name FROM user_tables ORDER BY table_name";
+            sql = "SELECT table_name, column_name FROM user_tab_columns ORDER BY table_name, column_id";
         } else if (url.contains(":postgresql:")) {
-            sql = "SELECT table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'pg_catalog') AND table_type = 'BASE TABLE' ORDER BY table_name";
+            sql = "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema NOT IN ('information_schema', 'pg_catalog') ORDER BY table_name, ordinal_position";
         } else if (url.contains(":db2:")) {
-            sql = "SELECT TABNAME FROM SYSCAT.tables WHERE TABSCHEMA = CURRENT schema AND TYPE = 'T'";
+            sql = "SELECT tabname AS table_name, colname AS column_name FROM syscat.columns WHERE tabschema = CURRENT SCHEMA ORDER BY tabname, colno";
         } else if (url.contains(":sqlserver:")) {
-            sql = "SELECT table_name FROM INFORMATION_SCHEMA.tables WHERE table_type = 'BASE TABLE' AND table_schema = SCHEMA_NAME()";
+            sql = "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = SCHEMA_NAME() ORDER BY table_name, ordinal_position";
         } else if (url.contains(":mysql:")) {
-            sql = "SELECT table_name FROM information_schema.tables WHERE table_schema NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys') ORDER by table_name";
+            sql = "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = DATABASE() ORDER BY table_name, ordinal_position";
         } else if (url.contains(":h2:")) {
-            // For testing support
-            sql = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'PUBLIC'";
+            sql = "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'PUBLIC' ORDER BY table_name, ordinal_position";
         } else {
-            return Collections.emptyList();
+            return Collections.emptyMap();
         }
 
         try {
             Connection conn = dbSessionService.getConnection(session, config);
             SqlResult result = jdbcExecutor.executeSql(conn, sql);
+
             if ("SUCCESS".equals(result.status()) && result.rows() != null) {
+                // Group by Table Name
                 return result.rows().stream()
-                        .map(row -> row.values().iterator().next().toString())
-                        .collect(Collectors.toList());
+                        .collect(Collectors.groupingBy(
+                                row -> row.values().stream().findFirst().orElse("UNKNOWN").toString(), // First column is Table
+                                Collectors.mapping(
+                                        row -> row.values().stream().skip(1).findFirst().orElse("UNKNOWN").toString(), // Second column is Column
+                                        Collectors.toList()
+                                )
+                        ));
             }
         } catch (SQLException e) {
-            log.error("Failed to fetch tables", e);
+            log.error("Failed to fetch schema", e);
         }
-        return Collections.emptyList();
+        return Collections.emptyMap();
     }
 
     /**

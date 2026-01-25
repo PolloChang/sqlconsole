@@ -13,6 +13,7 @@ import work.pollochang.sqlconsole.service.AuditService;
 import work.pollochang.sqlconsole.service.SqlExecutorService;
 
 import java.util.List;
+import java.util.Map;
 
 @Controller
 public class ConsoleController {
@@ -60,9 +61,9 @@ public class ConsoleController {
         return auditService.executeApprovedTask(taskId, auth.getName());
     }
 
-    @GetMapping("/api/tables")
+    @GetMapping("/api/schema")
     @ResponseBody
-    public List<String> getTables(@RequestParam Long dbId, HttpSession session) {
-        return sqlService.getTableNames(dbId, session);
+    public Map<String, List<String>> getSchema(@RequestParam Long dbId, HttpSession session) {
+        return sqlService.getTableSchema(dbId, session);
     }
 }

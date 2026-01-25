@@ -44,18 +44,15 @@ function getSmartSql(view) {
 window.getSmartSql = () => getSmartSql(window.editorView);
 
 // Global hook to update schema
-window.updateEditorSchema = (tableList) => {
-    const newSchema = {};
-    if (tableList && Array.isArray(tableList)) {
-        tableList.forEach(t => {
-            newSchema[t] = []; // We could fetch columns later if needed
-        });
-    }
+window.updateEditorSchema = (schemaData) => {
+    // schemaData is now expected to be { "TableName": ["Col1", "Col2"], ... }
+    // The CM6 sql extension accepts exactly this format.
+    const newSchema = schemaData || {};
 
     window.editorView.dispatch({
         effects: languageConf.reconfigure(sql({schema: newSchema, upperCaseKeywords: true}))
     });
-    console.log("Editor schema updated with tables:", tableList);
+    console.log("Editor schema updated with metadata:", newSchema);
 };
 
 // Command Handlers

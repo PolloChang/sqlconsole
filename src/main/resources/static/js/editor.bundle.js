@@ -24820,17 +24820,12 @@ function getSmartSql(view) {
   return doc2.substring(start, end).trim();
 }
 window.getSmartSql = () => getSmartSql(window.editorView);
-window.updateEditorSchema = (tableList) => {
-  const newSchema = {};
-  if (tableList && Array.isArray(tableList)) {
-    tableList.forEach((t2) => {
-      newSchema[t2] = [];
-    });
-  }
+window.updateEditorSchema = (schemaData) => {
+  const newSchema = schemaData || {};
   window.editorView.dispatch({
     effects: languageConf.reconfigure(sql({ schema: newSchema, upperCaseKeywords: true }))
   });
-  console.log("Editor schema updated with tables:", tableList);
+  console.log("Editor schema updated with metadata:", newSchema);
 };
 var runQuery = (view) => {
   window.doSql("EXEC");
