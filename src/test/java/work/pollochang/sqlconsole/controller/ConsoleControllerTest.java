@@ -1,85 +1,114 @@
 package work.pollochang.sqlconsole.controller;
 
-import org.junit.jupiter.api.DisplayName;
+import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.ui.Model;
 import work.pollochang.sqlconsole.model.dto.SqlResult;
 import work.pollochang.sqlconsole.repository.DbConfigRepository;
 import work.pollochang.sqlconsole.repository.UserRepository;
 import work.pollochang.sqlconsole.service.AuditService;
-import work.pollochang.sqlconsole.service.AuthService;
 import work.pollochang.sqlconsole.service.SqlExecutorService;
 
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
-@WebMvcTest(ConsoleController.class)
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
 class ConsoleControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @InjectMocks private ConsoleController controller;
 
-    // ✅ 這裡必須補齊 ConsoleController 所需的所有依賴
-    @MockitoBean private DbConfigRepository dbConfigRepo;
-    @MockitoBean private AuditService auditService;
-    @MockitoBean private SqlExecutorService sqlService;
-    @MockitoBean private UserRepository userRepo;
-    @MockitoBean private AuthService authService;
-    //因為 AuthService 被 Mock 了，導致 PasswordEncoder 消失，必須手動補回來
-    @MockitoBean private PasswordEncoder passwordEncoder;
+    @Mock private DbConfigRepository dbConfigRepo;
+    @Mock private AuditService auditService;
+    @Mock private SqlExecutorService sqlService;
+    @Mock private UserRepository userRepo;
 
-    @Test
-    @WithMockUser(username = "admin", roles = "AUDITOR")
-    @DisplayName("進入 Console 頁面 - 稽核員應看到任務列表")
-    void testConsolePage_AsAuditor() throws Exception {
-        // 這裡不需要特別 Mock 回傳值，因為 Model 屬性是 null 也不會導致頁面崩潰 (除非 thymeleaf 有強力檢查)
-        // 為了保險，可以加一點 Mock
-        // when(auditService.getPendingTasks()).thenReturn(List.of());
+    @Mock private Model model;
+    @Mock private Authentication auth;
+    @Mock private HttpSession session;
 
-        mockMvc.perform(get("/console"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("console"))
-                .andExpect(model().attributeExists("dbs"))
-                .andExpect(model().attributeExists("username"))
-                .andExpect(model().attributeExists("tasks")); // Auditor 特有
+    // Helper: 模擬 Authentication
+    private void mockAuth(String name, String role) {
+        when(auth.getName()).thenReturn(name);
+        // 使用 doReturn 避免泛型轉換問題
+        doReturn(List.of(new SimpleGrantedAuthority(role)))
+                .when(auth).getAuthorities();
     }
 
     @Test
-    @WithMockUser(username = "user", roles = "USER")
-    @DisplayName("執行 SQL API - 成功")
-    void testExecuteApi() throws Exception {
-        // Arrange: 模擬 Service 回傳成功結果
-        SqlResult mockResult = new SqlResult("SUCCESS", "OK", null, null);
-        when(sqlService.processRequest(any(), any(), any(), any(), any()))
-                .thenReturn(mockResult);
-
-        // Act & Assert
-        mockMvc.perform(post("/api/execute")
-                        .param("dbId", "1")
-                        .param("sql", "SELECT 1")
-                        .with(csrf())) // POST 需要 CSRF Token
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("SUCCESS"));
+    void testIndex() {
+        assertEquals("redirect:/console", controller.index());
     }
 
     @Test
-    @WithMockUser(username = "user", roles = "USER")
-    @DisplayName("審核 API - 一般使用者應無權限")
-    void testApproveApi_AsUser_ShouldFail() throws Exception {
-        mockMvc.perform(post("/api/approve")
-                        .param("taskId", "1")
-                        .with(csrf()))
-                .andExpect(status().isOk()) // 因為 Controller 有 try-catch 或回傳 JSON 錯誤物件
-                .andExpect(jsonPath("$.status").value("ERROR"))
-                .andExpect(jsonPath("$.message").value("無權限"));
+    void testConsolePage_AsAuditor() {
+        mockAuth("admin", "ROLE_AUDITOR");
+        when(dbConfigRepo.findAll()).thenReturn(Collections.emptyList());
+        when(auditService.getPendingTasks()).thenReturn(Collections.emptyList());
+
+        String view = controller.consolePage(model, auth);
+
+        assertEquals("console", view);
+        verify(model).addAttribute("role", "ROLE_AUDITOR");
+        verify(auditService).getPendingTasks(); // 只有 Auditor 會呼叫這個
+    }
+
+    @Test
+    void testConsolePage_AsUser() {
+        mockAuth("user", "ROLE_USER");
+        when(dbConfigRepo.findAll()).thenReturn(Collections.emptyList());
+
+        String view = controller.consolePage(model, auth);
+
+        assertEquals("console", view);
+        verify(model).addAttribute("role", "ROLE_USER");
+        verify(auditService, never()).getPendingTasks(); // 一般人不會撈待審核任務
+    }
+
+    @Test
+    void testExecute() {
+        mockAuth("user", "ROLE_USER");
+        SqlResult expected = new SqlResult("SUCCESS", "OK", null, null);
+        when(sqlService.processRequest(eq(1L), eq("SELECT 1"), eq("user"), eq("ROLE_USER"), eq(session)))
+                .thenReturn(expected);
+
+        SqlResult result = controller.execute(1L, "SELECT 1", auth, session);
+
+        assertEquals(expected, result);
+    }
+
+    @Test
+    void testApprove_AsAuditor_Success() {
+        mockAuth("admin", "ROLE_AUDITOR");
+        SqlResult expected = new SqlResult("SUCCESS", "Task Executed", null, null);
+        when(auditService.executeApprovedTask(100L, "admin")).thenReturn(expected);
+
+        SqlResult result = controller.approve(100L, auth, session);
+
+        assertEquals(expected, result);
+    }
+
+    @Test
+    void testApprove_AsUser_Forbidden() {
+//        mockAuth("user", "ROLE_USER");
+        doReturn(List.of(new SimpleGrantedAuthority("ROLE_USER")))
+                .when(auth).getAuthorities();
+
+        SqlResult result = controller.approve(100L, auth, session);
+
+        assertEquals("ERROR", result.status());
+        assertEquals("無權限", result.message());
+        verify(auditService, never()).executeApprovedTask(anyLong(), anyString());
     }
 }
