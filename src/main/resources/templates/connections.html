@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Database Connections</title>
+    <script src="/js/jquery-3.7.1.min.js"></script>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 50%; }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input, select { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { padding: 8px 15px; cursor: pointer; }
+        .btn-green { background-color: #4CAF50; color: white; border: none; }
+        .btn-blue { background-color: #008CBA; color: white; border: none; }
+        .btn-red { background-color: #f44336; color: white; border: none; }
+    </style>
+</head>
+<body>
+
+<h1>Database Connections</h1>
+<div>
+    <a href="/console">Back to Console</a>
+    <button class="btn-green" style="float: right;" onclick="openModal()">Add Connection</button>
+</div>
+
+<table id="connectionsTable">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Type</th>
+            <th>JDBC URL</th>
+            <th>User</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Data loaded via JS -->
+    </tbody>
+</table>
+
+<!-- Modal -->
+<div id="connectionModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h2 id="modalTitle">Add Connection</h2>
+        <form id="connectionForm">
+            <input type="hidden" id="connId">
+            <div class="form-group">
+                <label for="name">Name:</label>
+                <input type="text" id="name" required>
+            </div>
+            <div class="form-group">
+                <label for="dbType">Type:</label>
+                <select id="dbType" required>
+                    <option value="POSTGRESQL">PostgreSQL</option>
+                    <option value="ORACLE">Oracle</option>
+                    <option value="MSSQL">SQL Server</option>
+                    <option value="DB2">DB2</option>
+                    <option value="MYSQL">MySQL</option>
+                    <option value="MARIADB">MariaDB</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="jdbcUrl">JDBC URL:</label>
+                <input type="text" id="jdbcUrl" required>
+            </div>
+            <div class="form-group">
+                <label for="dbUser">User:</label>
+                <input type="text" id="dbUser">
+            </div>
+            <div class="form-group">
+                <label for="dbPassword">Password:</label>
+                <input type="password" id="dbPassword" placeholder="******">
+            </div>
+            <div style="text-align: right;">
+                <span id="testStatus" style="margin-right: 10px; font-weight: bold;"></span>
+                <button type="button" class="btn-blue" onclick="testConnection()">Test Connection</button>
+                <button type="button" class="btn-green" onclick="saveConnection()">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        loadConnections();
+    });
+
+    let currentConnections = [];
+
+    function loadConnections() {
+        $.get("/api/connections", function(data) {
+            currentConnections = data;
+            let tbody = $("#connectionsTable tbody");
+            tbody.empty();
+            data.forEach(conn => {
+                let tr = $("<tr>");
+                tr.append($("<td>").text(conn.id));
+                tr.append($("<td>").text(conn.name));
+                tr.append($("<td>").text(conn.dbType));
+                tr.append($("<td>").text(conn.jdbcUrl));
+                tr.append($("<td>").text(conn.dbUser));
+
+                let actionsTd = $("<td>");
+                let editBtn = $("<button>").addClass("btn-blue").text("Edit").click(function() { editConnection(conn.id); });
+                let deleteBtn = $("<button>").addClass("btn-red").text("Delete").css("margin-left", "5px").click(function() { deleteConnection(conn.id); });
+
+                actionsTd.append(editBtn).append(deleteBtn);
+                tr.append(actionsTd);
+                tbody.append(tr);
+            });
+        });
+    }
+
+    function openModal(id) {
+        $("#testStatus").text("");
+        if (id) {
+            $("#modalTitle").text("Edit Connection");
+            let conn = currentConnections.find(c => c.id === id);
+            if (conn) {
+                $("#connId").val(conn.id);
+                $("#name").val(conn.name);
+                $("#dbType").val(conn.dbType);
+                $("#jdbcUrl").val(conn.jdbcUrl);
+                $("#dbUser").val(conn.dbUser);
+                $("#dbPassword").val(""); // Don't show masked password
+                $("#dbPassword").attr("placeholder", "******");
+            }
+        } else {
+            $("#modalTitle").text("Add Connection");
+            $("#connectionForm")[0].reset();
+            $("#connId").val("");
+            $("#dbPassword").attr("placeholder", "");
+        }
+        $("#connectionModal").show();
+    }
+
+    function closeModal() {
+        $("#connectionModal").hide();
+    }
+
+    function editConnection(id) {
+        openModal(id);
+    }
+
+    function deleteConnection(id) {
+        if (confirm("Are you sure?")) {
+            $.ajax({
+                url: '/api/connections/' + id,
+                type: 'DELETE',
+                success: function(result) {
+                    loadConnections();
+                },
+                error: function(err) {
+                    alert("Error deleting: " + (err.responseJSON ? err.responseJSON.message : err.statusText));
+                }
+            });
+        }
+    }
+
+    function testConnection() {
+        $("#testStatus").text("Testing...").css("color", "blue");
+        let payload = {
+            dbType: $("#dbType").val(),
+            jdbcUrl: $("#jdbcUrl").val(),
+            dbUser: $("#dbUser").val(),
+            dbPassword: $("#dbPassword").val()
+        };
+
+        // If editing and password is empty, we can't test because we don't have the password (it's masked on server).
+        // Server test endpoint expects plain text.
+        // If user wants to test, they MUST re-enter password, OR we need an endpoint to test existing config by ID.
+        // But the modal allows changing URL/User.
+        // If I change URL but keep password empty, I want to use existing password.
+        // But `testConnection` (service) takes plain text.
+        // It seems simpler to require password for testing if changed.
+        // OR: If id is present and password is empty, warn user "Enter password to test".
+
+        if (!payload.dbPassword && $("#connId").val()) {
+             // We can try to test by ID if no changes made?
+             // But form fields might be changed.
+             $("#testStatus").text("Enter password to test").css("color", "red");
+             return;
+        }
+
+        $.ajax({
+            url: '/api/connections/test',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(payload),
+            success: function(res) {
+                if (res.status === 'SUCCESS') {
+                    $("#testStatus").text(res.message).css("color", "green");
+                } else {
+                    $("#testStatus").text(res.message).css("color", "red");
+                }
+            },
+            error: function(err) {
+                $("#testStatus").text("Error").css("color", "red");
+            }
+        });
+    }
+
+    function saveConnection() {
+        let id = $("#connId").val();
+        let payload = {
+            id: id ? parseInt(id) : null,
+            name: $("#name").val(),
+            dbType: $("#dbType").val(),
+            jdbcUrl: $("#jdbcUrl").val(),
+            dbUser: $("#dbUser").val(),
+            dbPassword: $("#dbPassword").val()
+        };
+
+        // If password is empty and we are editing, send empty (or null) so backend keeps existing.
+        // If password is empty and new, it's empty.
+
+        $.ajax({
+            url: '/api/connections',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(payload),
+            success: function(res) {
+                closeModal();
+                loadConnections();
+            },
+            error: function(err) {
+                alert("Error saving: " + (err.responseJSON ? err.responseJSON.message : err.statusText));
+            }
+        });
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        if (event.target == document.getElementById("connectionModal")) {
+            closeModal();
+        }
+    }
+</script>
+
+</body>
+</html>

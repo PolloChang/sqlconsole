@@ -25,6 +25,7 @@ class DbSessionServiceTest {
     @Mock private HttpSession session;
     @Mock private Connection connection;
     @Mock private DbConfig dbConfig;
+    @Mock private DbConfigService dbConfigService;
 
     @Test
     void testGetConnection_ExistingOpenConnection() throws SQLException {
@@ -45,24 +46,17 @@ class DbSessionServiceTest {
     void testGetConnection_NewConnection() throws SQLException {
         // Arrange
         when(dbConfig.getId()).thenReturn(1L);
-        when(dbConfig.getJdbcUrl()).thenReturn("jdbc:h2:mem:test");
-        when(dbConfig.getDbUser()).thenReturn("sa");
-        when(dbConfig.getDbPassword()).thenReturn("");
         when(session.getAttribute("CONN_1")).thenReturn(null); // 模擬無連線
+        when(dbConfigService.createConnection(dbConfig)).thenReturn(connection);
 
-        // 使用 MockStatic 模擬靜態方法 DriverManager
-        try (MockedStatic<DriverManager> mockedDriver = mockStatic(DriverManager.class)) {
-            mockedDriver.when(() -> DriverManager.getConnection(anyString(), anyString(), anyString()))
-                    .thenReturn(connection);
+        // Act
+        Connection result = dbSessionService.getConnection(session, dbConfig);
 
-            // Act
-            Connection result = dbSessionService.getConnection(session, dbConfig);
-
-            // Assert
-            assertSame(connection, result);
-            verify(connection).setAutoCommit(false); // 驗證有設為手動 Commit
-            verify(session).setAttribute("CONN_1", connection);
-        }
+        // Assert
+        assertSame(connection, result);
+        verify(connection).setAutoCommit(false); // 驗證有設為手動 Commit
+        verify(session).setAttribute("CONN_1", connection);
+        verify(dbConfigService).createConnection(dbConfig);
     }
 
     @Test
