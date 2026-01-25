@@ -75,9 +75,9 @@ const handleEnter = (view) => {
 
 const myKeymap = [
     {key: "Ctrl-Enter", run: runQuery},
-    {key: "Enter", run: handleEnter}, // Override default Enter behavior
     {key: "Ctrl-[", run: commitTx},
     {key: "Ctrl-]", run: rollbackTx}
+    // 這裡不要寫 Enter，讓 basicSetup 處理正常的 Enter 換行與補全選取
 ];
 
 window.editorView = new EditorView({
