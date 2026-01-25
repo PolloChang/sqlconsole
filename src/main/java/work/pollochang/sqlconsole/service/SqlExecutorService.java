@@ -68,9 +68,9 @@ public class SqlExecutorService {
         try {
             Connection conn = dbSessionService.getConnection(session, config);
             if (commit) conn.commit(); else conn.rollback();
-            return new SqlResult("SUCCESS", commit ? "Commit Success" : "Rollback Success", null, null);
+            return new SqlResult("SUCCESS", "COMMITTED", commit ? "Commit Success" : "Rollback Success", null, null);
         } catch (SQLException e) {
-            return new SqlResult("ERROR", e.getMessage(), null, null);
+            return new SqlResult("ERROR", "UNCOMMIT", e.getMessage(), null, null);
         }
     }
 
@@ -81,6 +81,7 @@ public class SqlExecutorService {
     public SqlResult executeRawSql(HttpSession session, DbConfig config, String sql, String executor, boolean autoCommitAfterExec) {
         String status = "SUCCESS";
         String msg;
+        String txStatus = "UNCOMMIT";
         SqlResult result = null;
         Connection conn = null;
 
@@ -95,30 +96,44 @@ public class SqlExecutorService {
             if (autoCommitAfterExec && !conn.getAutoCommit()) {
                 conn.commit();
                 msg += " (Auto Committed by System)";
-                // 更新 Result 的訊息
-                result = new SqlResult(
-                        result.status(),
-                        msg,
-                        result.columns(),
-                        result.rows()
-                );
             }
+
+            // Determine txStatus
+            if (conn.getAutoCommit()) {
+                txStatus = "COMMITTED";
+            } else {
+                txStatus = "UNCOMMIT";
+            }
+
+            // Rebuild result with txStatus
+            result = new SqlResult(
+                    result.status(),
+                    txStatus,
+                    msg,
+                    result.columns(),
+                    result.rows()
+            );
 
         } catch (SQLException e) {
             status = "ERROR";
             msg = e.getMessage();
+            txStatus = "UNCOMMIT";
+
             if (conn != null) {
                 try {
                     if (!conn.getAutoCommit()) {
                         log.warn("⚠️ SQL Error, Rolling back...");
                         conn.rollback();
                         msg += " (Transaction rolled back)";
+                        txStatus = "COMMITTED";
+                    } else {
+                        txStatus = "COMMITTED";
                     }
                 } catch (SQLException ex) {
                     log.error("Rollback failed", ex);
                 }
             }
-            result = new SqlResult("ERROR", msg, null, null);
+            result = new SqlResult("ERROR", txStatus, msg, null, null);
         }
 
         historyRepo.save(new SqlHistory(executor, config.getName(), sql, status));

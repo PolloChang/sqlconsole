@@ -47,6 +47,6 @@ public class JdbcExecutor {
                 msg = "Affected rows: " + stmt.getUpdateCount();
             }
         }
-        return new SqlResult(status, msg, columns, rows);
+        return new SqlResult(status, null, msg, columns, rows);
     }
 }

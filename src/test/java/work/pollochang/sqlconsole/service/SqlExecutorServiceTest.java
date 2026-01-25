@@ -50,7 +50,7 @@ class SqlExecutorServiceTest {
         when(dbConfigRepo.findById(dbId)).thenReturn(Optional.of(mockConfig));
         when(dbSessionService.getConnection(session, mockConfig)).thenReturn(connection);
 
-        SqlResult expectedResult = new SqlResult("SUCCESS", "Query returned 1 rows",
+        SqlResult expectedResult = new SqlResult("SUCCESS", null, "Query returned 1 rows",
                 List.of("id"),
                 List.of(Map.of("id", 100)));
 

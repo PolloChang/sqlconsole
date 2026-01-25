@@ -54,7 +54,7 @@ public class ConsoleController {
     public SqlResult approve(@RequestParam Long taskId, Authentication auth, HttpSession session) {
         String role = auth.getAuthorities().stream().findFirst().get().getAuthority();
         if (!role.equals("ROLE_AUDITOR")) {
-            return new SqlResult("ERROR", "無權限", null, null);
+            return new SqlResult("ERROR", "COMMITTED", "無權限", null, null);
         }
         // 因為具體的「撈工單 -> 執行」邏輯現在在 Premium 專案裡
         return auditService.executeApprovedTask(taskId, auth.getName());
