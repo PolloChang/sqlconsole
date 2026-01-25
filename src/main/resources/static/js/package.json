@@ -1,0 +1,16 @@
+{
+  "name": "sql-console-editor",
+  "version": "1.0.0",
+  "description": "CodeMirror 6 bundle for SQL Console",
+  "main": "editor.js",
+  "dependencies": {
+    "codemirror": "^6.0.1",
+    "@codemirror/view": "^6.24.0",
+    "@codemirror/state": "^6.4.0",
+    "@codemirror/language": "^6.10.0",
+    "@codemirror/commands": "^6.3.3",
+    "@codemirror/lang-sql": "^6.5.1",
+    "@codemirror/autocomplete": "^6.12.0",
+    "esbuild": "^0.19.11"
+  }
+}

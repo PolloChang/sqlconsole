@@ -4,19 +4,7 @@
     <title>Java Master SQL Console</title>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <meta charset="UTF-8">
-    <script type="importmap">
-    {
-      "imports": {
-        "codemirror": "https://esm.sh/codemirror@6.0.1",
-        "@codemirror/view": "https://esm.sh/@codemirror/view@6.24.0",
-        "@codemirror/state": "https://esm.sh/@codemirror/state@6.4.0",
-        "@codemirror/language": "https://esm.sh/@codemirror/language@6.10.0",
-        "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.3.3",
-        "@codemirror/lang-sql": "https://esm.sh/@codemirror/lang-sql@6.5.1",
-        "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.12.0"
-      }
-    }
-    </script>
+    <script type="module" src="/js/editor.bundle.js"></script>
     <style>
         .cm-editor { border: 1px solid #ccc; height: 300px; font-size: 14px; background-color: white;}
         .cm-scroller { overflow: auto; }
@@ -64,76 +52,6 @@
 <div id="msgArea"></div>
 <div id="resultTable"></div>
 
-<script type="module">
-    import {EditorView, basicSetup} from "codemirror"
-    import {EditorState} from "@codemirror/state"
-    import {keymap} from "@codemirror/view"
-    import {sql} from "@codemirror/lang-sql"
-    import {defaultKeymap} from "@codemirror/commands"
-
-    const schema = {
-        "USER_TABLES": [],
-        "EMPLOYEES": ["ID", "NAME", "SALARY"],
-        "DEPARTMENTS": ["ID", "NAME"],
-        "users": ["id", "username", "role"],
-        "db_configs": ["id", "name"],
-        "sql_history": ["id", "executor", "sql_content"]
-    };
-
-    function getSmartSql(view) {
-        const state = view.state;
-        const selection = state.selection.main;
-
-        if (!selection.empty) {
-            return state.sliceDoc(selection.from, selection.to);
-        }
-
-        const doc = state.doc.toString();
-        const cursor = selection.head;
-
-        let start = doc.lastIndexOf(';', cursor - 1);
-        if (start === -1) start = 0;
-        else start += 1;
-
-        let end = doc.indexOf(';', cursor);
-        if (end === -1) end = doc.length;
-
-        return doc.substring(start, end).trim();
-    }
-
-    window.getSmartSql = () => getSmartSql(window.editorView);
-
-    const runQuery = (view) => {
-        window.doSql('EXEC');
-        return true;
-    };
-
-    const commitTx = (view) => {
-        window.doSql('COMMIT');
-        return true;
-    };
-
-    const rollbackTx = (view) => {
-        window.doSql('ROLLBACK');
-        return true;
-    };
-
-    const myKeymap = [
-        {key: "Ctrl-Enter", run: runQuery},
-        {key: "Ctrl-[", run: commitTx},
-        {key: "Ctrl-]", run: rollbackTx}
-    ];
-
-    window.editorView = new EditorView({
-        doc: "-- Enter SQL here...",
-        extensions: [
-            basicSetup,
-            keymap.of([...myKeymap, ...defaultKeymap]),
-            sql({schema: schema})
-        ],
-        parent: document.getElementById("editor")
-    });
-</script>
 
 <script>
     function doSql(action) {
