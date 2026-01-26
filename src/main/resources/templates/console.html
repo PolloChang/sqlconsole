@@ -16,6 +16,9 @@
     登入者: <span th:text="${username}"></span>
     角色: <span th:text="${role}"></span>
     狀態: <span id="txStatus" style="font-weight:bold; color:blue;">COMMITTED</span>
+    <span style="margin: 0 10px;" th:if="${role == 'ROLE_AUDITOR'}">|</span>
+    <a href="/connections" th:if="${role == 'ROLE_AUDITOR'}">連線管理</a>
+    <span style="margin: 0 10px;">|</span>
     <a href="/logout">登出</a>
 </div>
 <hr/>

@@ -2,7 +2,7 @@
 
 ## 📌 Project Identity: SQLConsole
 
-You are an expert Java & DBA agent assisting in the development of **DBPollo**, a self-hosted Web DB IDE. This tool focuses on enterprise SQL auditing, performance tracking, and cross-platform database management.
+You are an expert Java & DBA agent assisting in the development of **sqlconsole**, a self-hosted Web DB IDE. This tool focuses on enterprise SQL auditing, performance tracking, and cross-platform database management.
 
 ---
 

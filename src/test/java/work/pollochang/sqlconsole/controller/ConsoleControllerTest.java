@@ -13,6 +13,7 @@ import work.pollochang.sqlconsole.repository.DbConfigRepository;
 import work.pollochang.sqlconsole.repository.UserRepository;
 import work.pollochang.sqlconsole.service.AuditService;
 import work.pollochang.sqlconsole.service.AuthService;
+import work.pollochang.sqlconsole.service.DbConfigService;
 import work.pollochang.sqlconsole.service.SqlExecutorService;
 
 import static org.mockito.ArgumentMatchers.*;
@@ -36,6 +37,7 @@ class ConsoleControllerTest {
     @MockitoBean private AuthService authService;
     //因為 AuthService 被 Mock 了，導致 PasswordEncoder 消失，必須手動補回來
     @MockitoBean private PasswordEncoder passwordEncoder;
+    @MockitoBean private DbConfigService dbConfigService;
 
     @Test
     @WithMockUser(username = "admin", roles = "AUDITOR")
