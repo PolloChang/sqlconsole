@@ -26,6 +26,32 @@ public class UserService {
   }
 
   @Transactional
+  public User updateUser(Long id, User userDetails) {
+    User user =
+        userRepository
+            .findById(id)
+            .orElseThrow(() -> new RuntimeException("User not found: " + id));
+
+    // Update username if changed and check distinct
+    if (!user.getUsername().equals(userDetails.getUsername())) {
+      if (userRepository.existsByUsername(userDetails.getUsername())) {
+        throw new RuntimeException("Username already exists");
+      }
+      user.setUsername(userDetails.getUsername());
+    }
+
+    // Update Role
+    user.setRole(userDetails.getRole());
+
+    // Update Password only if provided
+    if (userDetails.getPassword() != null && !userDetails.getPassword().isEmpty()) {
+      user.setPassword(passwordEncoder.encode(userDetails.getPassword()));
+    }
+
+    return userRepository.save(user);
+  }
+
+  @Transactional
   public void assignDatabases(Long userId, Set<Long> dbIds) {
     var user =
         userRepository
