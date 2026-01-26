@@ -8,14 +8,11 @@ spring:
   application:
     name: sqlconsole
 
-
   hibernate:
     cache:
       queries: false
       use_second_level_cache: false
       use_query_cache: false
-
-
 
   # JPA Settings
   jpa:
@@ -29,6 +26,11 @@ spring:
   # Thymeleaf
   thymeleaf:
     cache: false
+
+app:
+  security:
+    master-key: change-me-in-prod-12345678 # 預設金鑰 (測試用)
+
 ---
 logging:
   level:

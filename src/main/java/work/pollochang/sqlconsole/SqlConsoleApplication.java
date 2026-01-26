@@ -9,8 +9,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import work.pollochang.sqlconsole.model.entity.DbConfig;
 import work.pollochang.sqlconsole.model.entity.User;
-import work.pollochang.sqlconsole.repository.DbConfigRepository;
+import work.pollochang.sqlconsole.model.enums.DbType;
 import work.pollochang.sqlconsole.repository.UserRepository;
+import work.pollochang.sqlconsole.service.DbConfigService;
 
 @Slf4j
 @SpringBootApplication
@@ -21,7 +22,7 @@ public class SqlConsoleApplication {
     }
 
     @Bean
-    CommandLineRunner init(UserRepository userRepo, DbConfigRepository dbRepo, PasswordEncoder encoder) {
+    CommandLineRunner init(UserRepository userRepo, DbConfigService dbConfigService, PasswordEncoder encoder) {
         return args -> {
             // 初始化使用者
             if (userRepo.count() == 0) {
@@ -30,8 +31,8 @@ public class SqlConsoleApplication {
                 log.info("✅ 預設使用者已建立：user/1234, admin/1234");
             }
             // 初始化測試 DB 設定 (請確保本地有這個 Postgres DB)
-            if (dbRepo.count() == 0) {
-                dbRepo.save(new DbConfig("Local Postgres", "jdbc:postgresql://localhost:5432/sql_console_sys", "postgres", "password"));
+            if (dbConfigService.getAllConfigs().isEmpty()) {
+                dbConfigService.saveConfig(new DbConfig("Local Postgres", DbType.POSTGRESQL, "jdbc:postgresql://localhost:5432/sql_console_sys", "postgres", "password"));
                 log.info("✅ 預設資料庫連線已建立");
             }
         };
