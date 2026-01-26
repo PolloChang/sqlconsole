@@ -1,0 +1,84 @@
+Starting a Gradle Daemon, 1 busy Daemon could not be reused, use --status for details
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :resolveMainClassName UP-TO-DATE
+
+> Task :bootRun
+14:46:40,793 |-ERROR in ch.qos.logback.core.rolling.RollingFileAppender[FILE] - Failed to create parent directories for [/var/log/sqlconsole/app.log]
+14:46:40,800 |-ERROR in ch.qos.logback.core.rolling.RollingFileAppender[FILE] - openFile(/var/log/sqlconsole/app.log,true) call failed. java.io.FileNotFoundException: /var/log/sqlconsole/app.log (No such file or directory)
+	at java.io.FileNotFoundException: /var/log/sqlconsole/app.log (No such file or directory)
+	at 	at java.base/java.io.FileOutputStream.open0(Native Method)
+	at 	at java.base/java.io.FileOutputStream.open(FileOutputStream.java:289)
+	at 	at java.base/java.io.FileOutputStream.<init>(FileOutputStream.java:230)
+	at 	at ch.qos.logback.core.recovery.ResilientFileOutputStream.<init>(ResilientFileOutputStream.java:26)
+	at 	at ch.qos.logback.core.FileAppender.openFile(FileAppender.java:165)
+	at 	at ch.qos.logback.core.FileAppender.start(FileAppender.java:120)
+	at 	at ch.qos.logback.core.rolling.RollingFileAppender.start(RollingFileAppender.java:104)
+	at 	at org.springframework.boot.logging.logback.LogbackConfigurator.start(LogbackConfigurator.java:111)
+	at 	at org.springframework.boot.logging.logback.LogbackConfigurator.appender(LogbackConfigurator.java:74)
+	at 	at org.springframework.boot.logging.logback.DefaultLogbackConfiguration.fileAppender(DefaultLogbackConfiguration.java:147)
+	at 	at org.springframework.boot.logging.logback.DefaultLogbackConfiguration.apply(DefaultLogbackConfiguration.java:88)
+	at 	at org.springframework.boot.logging.logback.LogbackLoggingSystem.lambda$loadDefaults$1(LogbackLoggingSystem.java:241)
+	at 	at org.springframework.boot.logging.logback.LogbackLoggingSystem.withLoggingSuppressed(LogbackLoggingSystem.java:481)
+	at 	at org.springframework.boot.logging.logback.LogbackLoggingSystem.loadDefaults(LogbackLoggingSystem.java:230)
+	at 	at org.springframework.boot.logging.AbstractLoggingSystem.initializeWithConventions(AbstractLoggingSystem.java:84)
+	at 	at org.springframework.boot.logging.AbstractLoggingSystem.initialize(AbstractLoggingSystem.java:61)
+	at 	at org.springframework.boot.logging.logback.LogbackLoggingSystem.initialize(LogbackLoggingSystem.java:195)
+	at 	at org.springframework.boot.context.logging.LoggingApplicationListener.initializeSystem(LoggingApplicationListener.java:332)
+	at 	at org.springframework.boot.context.logging.LoggingApplicationListener.initialize(LoggingApplicationListener.java:298)
+	at 	at org.springframework.boot.context.logging.LoggingApplicationListener.onApplicationEnvironmentPreparedEvent(LoggingApplicationListener.java:246)
+	at 	at org.springframework.boot.context.logging.LoggingApplicationListener.onApplicationEvent(LoggingApplicationListener.java:223)
+	at 	at org.springframework.context.event.SimpleApplicationEventMulticaster.doInvokeListener(SimpleApplicationEventMulticaster.java:185)
+	at 	at org.springframework.context.event.SimpleApplicationEventMulticaster.invokeListener(SimpleApplicationEventMulticaster.java:178)
+	at 	at org.springframework.context.event.SimpleApplicationEventMulticaster.multicastEvent(SimpleApplicationEventMulticaster.java:156)
+	at 	at org.springframework.context.event.SimpleApplicationEventMulticaster.multicastEvent(SimpleApplicationEventMulticaster.java:138)
+	at 	at org.springframework.boot.context.event.EventPublishingRunListener.multicastInitialEvent(EventPublishingRunListener.java:136)
+	at 	at org.springframework.boot.context.event.EventPublishingRunListener.environmentPrepared(EventPublishingRunListener.java:81)
+	at 	at org.springframework.boot.SpringApplicationRunListeners.lambda$environmentPrepared$2(SpringApplicationRunListeners.java:64)
+	at 	at java.base/java.lang.Iterable.forEach(Iterable.java:75)
+	at 	at org.springframework.boot.SpringApplicationRunListeners.doWithListeners(SpringApplicationRunListeners.java:118)
+	at 	at org.springframework.boot.SpringApplicationRunListeners.doWithListeners(SpringApplicationRunListeners.java:112)
+	at 	at org.springframework.boot.SpringApplicationRunListeners.environmentPrepared(SpringApplicationRunListeners.java:63)
+	at 	at org.springframework.boot.SpringApplication.prepareEnvironment(SpringApplication.java:353)
+	at 	at org.springframework.boot.SpringApplication.run(SpringApplication.java:313)
+	at 	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1361)
+	at 	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1350)
+	at 	at work.pollochang.sqlconsole.SqlConsoleApplication.main(SqlConsoleApplication.java:20)
+	at 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at 	at org.springframework.boot.devtools.restart.RestartLauncher.run(RestartLauncher.java:50)
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::               (v3.5.10)
+
+2026-01-26T14:46:44.898Z  WARN 27947 --- [sqlconsole] [  restartedMain] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+14:46:44,901 |-WARN in ch.qos.logback.core.rolling.RollingFileAppender[FILE] - Attempted to append to non started appender [FILE].
+2026-01-26T14:46:46.859Z  WARN 27947 --- [sqlconsole] [  restartedMain] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+14:46:46,860 |-WARN in ch.qos.logback.core.rolling.RollingFileAppender[FILE] - Attempted to append to non started appender [FILE].
+2026-01-26T14:46:47.675Z  WARN 27947 --- [sqlconsole] [  restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : Unable to start LiveReload server
+2026-01-26T14:46:47.700Z  WARN 27947 --- [sqlconsole] [  restartedMain] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.context.ApplicationContextException: Failed to start bean 'webServerStartStop'
+2026-01-26T14:46:47.713Z  WARN 27947 --- [sqlconsole] [  restartedMain] o.s.b.f.support.DisposableBeanAdapter    : Invocation of destroy method failed on bean with name 'inMemoryDatabaseShutdownExecutor': org.h2.jdbc.JdbcSQLNonTransientConnectionException: Database is already closed (to disable automatic closing at VM shutdown, add ";DB_CLOSE_ON_EXIT=FALSE" to the db URL) [90121-232]
+2026-01-26T14:46:47.748Z ERROR 27947 --- [sqlconsole] [  restartedMain] o.s.b.d.LoggingFailureAnalysisReporter   :
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Web server failed to start. Port 8080 was already in use.
+
+Action:
+
+Identify and stop the process that's listening on port 8080 or configure this application to listen on another port.
+
+
+BUILD SUCCESSFUL in 23s
+4 actionable tasks: 1 executed, 3 up-to-date

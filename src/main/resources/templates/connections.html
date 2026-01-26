@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <title>Database Connections</title>
     <script src="/js/jquery-3.7.1.min.js"></script>
@@ -26,6 +26,9 @@
 <h1>Database Connections</h1>
 <div>
     <a href="/console">Back to Console</a>
+    <span sec:authorize="hasRole('ADMIN')" style="margin-left: 10px;">
+        <a href="/admin/users">User Management</a>
+    </span>
     <button class="btn-green" style="float: right;" onclick="openModal()">Add Connection</button>
 </div>
 
