@@ -9,12 +9,17 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import work.pollochang.sqlconsole.model.dto.SqlResult;
 import work.pollochang.sqlconsole.model.entity.DbConfig;
 import work.pollochang.sqlconsole.model.entity.SqlHistory;
+import work.pollochang.sqlconsole.model.entity.User;
 import work.pollochang.sqlconsole.repository.DbConfigRepository;
 import work.pollochang.sqlconsole.repository.SqlHistoryRepository;
+import work.pollochang.sqlconsole.repository.UserRepository;
 
 /** 處理 SQL 解析、執行與審核。 */
 @Slf4j
@@ -26,8 +31,35 @@ public class SqlExecutorService {
   @Autowired private SqlHistoryRepository historyRepo;
   @Autowired private DbSessionService dbSessionService;
   @Autowired private JdbcExecutor jdbcExecutor; // ✅ 注入新的 Helper
+  @Autowired private UserRepository userRepository;
 
-  public Map<String, List<String>> getTableSchema(Long dbId, HttpSession session) {
+  private void validateAccess(Long dbId, String username, String role) {
+    if (User.ROLE_ADMIN.equals(role)) {
+      return;
+    }
+    User user =
+        userRepository
+            .findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+    boolean hasAccess =
+        user.getAccessibleDatabases().stream().anyMatch(db -> db.getId().equals(dbId));
+
+    if (!hasAccess) {
+      throw new AccessDeniedException("Access Denied to DB: " + dbId);
+    }
+  }
+
+  public Map<String, List<String>> getTableSchema(
+      Long dbId, HttpSession session, Authentication auth) {
+    String role =
+        auth.getAuthorities().stream()
+            .findFirst()
+            .map(GrantedAuthority::getAuthority)
+            .orElse(User.ROLE_USER);
+
+    validateAccess(dbId, auth.getName(), role);
+
     DbConfig config =
         dbConfigRepo.findById(dbId).orElseThrow(() -> new RuntimeException("DB Not Found"));
     String url = config.getJdbcUrl().toLowerCase();
@@ -104,6 +136,8 @@ public class SqlExecutorService {
 
   public SqlResult processRequest(
       Long dbId, String sql, String username, String role, HttpSession session) {
+    validateAccess(dbId, username, role);
+
     DbConfig config =
         dbConfigRepo.findById(dbId).orElseThrow(() -> new RuntimeException("DB Not Found"));
     String upperSql = sql.trim().toUpperCase();

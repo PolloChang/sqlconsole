@@ -12,12 +12,14 @@ import work.pollochang.sqlconsole.model.dto.SqlResult;
 import work.pollochang.sqlconsole.repository.DbConfigRepository;
 import work.pollochang.sqlconsole.repository.UserRepository;
 import work.pollochang.sqlconsole.service.AuditService;
+import work.pollochang.sqlconsole.service.DbConfigService;
 import work.pollochang.sqlconsole.service.SqlExecutorService;
 
 @Controller
 public class ConsoleController {
 
   @Autowired private DbConfigRepository dbConfigRepo;
+  @Autowired private DbConfigService dbConfigService;
   @Autowired private AuditService auditService; // ✅ 新增：改用介面
   @Autowired private SqlExecutorService sqlService;
   @Autowired private UserRepository userRepo;
@@ -29,7 +31,7 @@ public class ConsoleController {
 
   @GetMapping("/console")
   public String consolePage(Model model, Authentication auth) {
-    model.addAttribute("dbs", dbConfigRepo.findAll());
+    model.addAttribute("dbs", dbConfigService.getAllConfigs());
     model.addAttribute("username", auth.getName());
 
     String role = auth.getAuthorities().stream().findFirst().get().getAuthority();
@@ -62,7 +64,8 @@ public class ConsoleController {
 
   @GetMapping("/api/schema")
   @ResponseBody
-  public Map<String, List<String>> getSchema(@RequestParam Long dbId, HttpSession session) {
-    return sqlService.getTableSchema(dbId, session);
+  public Map<String, List<String>> getSchema(
+      @RequestParam Long dbId, HttpSession session, Authentication auth) {
+    return sqlService.getTableSchema(dbId, session, auth);
   }
 }

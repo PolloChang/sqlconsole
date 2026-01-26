@@ -1,15 +1,18 @@
 package work.pollochang.sqlconsole.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import jakarta.servlet.http.HttpSession;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,10 +20,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import work.pollochang.sqlconsole.model.dto.SqlResult;
 import work.pollochang.sqlconsole.model.entity.DbConfig;
+import work.pollochang.sqlconsole.model.entity.User;
 import work.pollochang.sqlconsole.repository.DbConfigRepository;
 import work.pollochang.sqlconsole.repository.SqlHistoryRepository;
+import work.pollochang.sqlconsole.repository.UserRepository;
 
 @Slf4j
 @ExtendWith(MockitoExtension.class)
@@ -33,9 +40,41 @@ class SqlExecutorServiceTest {
   @Mock private SqlHistoryRepository historyRepo;
   @Mock private DbSessionService dbSessionService;
   @Mock private JdbcExecutor jdbcExecutor;
+  @Mock private UserRepository userRepository;
 
   @Mock private HttpSession session;
   @Mock private Connection connection;
+
+  @Test
+  @DisplayName("executeSql_Unauthorized_ShouldThrowException")
+  void testProcessRequest_Unauthorized_ShouldThrowException() {
+    // Arrange
+    Long dbId = 1L;
+    String sql = "SELECT 1";
+    String username = "user1";
+
+    User user = new User();
+    user.setUsername(username);
+    user.setAccessibleDatabases(Collections.emptySet()); // No access
+
+    // We don't need to mock DbConfigRepo because validation should happen before or during lookup
+    // But if implementation fetches config first, we need to mock it.
+    // Assuming validation happens.
+
+    // If implementation fetches config first:
+    // DbConfig mockConfig = new DbConfig();
+    // mockConfig.setId(dbId);
+    // when(dbConfigRepo.findById(dbId)).thenReturn(Optional.of(mockConfig));
+
+    when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
+
+    // Act & Assert
+    assertThrows(
+        AccessDeniedException.class,
+        () -> {
+          sqlExecutorService.processRequest(dbId, sql, username, "ROLE_USER", session);
+        });
+  }
 
   @Test
   @DisplayName("測試 SELECT 查詢 - 使用 JdbcExecutor Mock")
@@ -44,7 +83,14 @@ class SqlExecutorServiceTest {
     Long dbId = 1L;
     String sql = "SELECT * FROM users";
     DbConfig mockConfig = new DbConfig();
+    mockConfig.setId(dbId);
     mockConfig.setName("TestDB");
+
+    // Mock Auth
+    User user = new User();
+    user.setUsername("user1");
+    user.setAccessibleDatabases(Set.of(mockConfig));
+    when(userRepository.findByUsername("user1")).thenReturn(Optional.of(user));
 
     when(dbConfigRepo.findById(dbId)).thenReturn(Optional.of(mockConfig));
     when(dbSessionService.getConnection(session, mockConfig)).thenReturn(connection);
@@ -77,6 +123,13 @@ class SqlExecutorServiceTest {
     Long dbId = 1L;
     String sql = "BAD SQL";
     DbConfig mockConfig = new DbConfig();
+    mockConfig.setId(dbId);
+
+    // Mock Auth
+    User user = new User();
+    user.setUsername("user1");
+    user.setAccessibleDatabases(Set.of(mockConfig));
+    when(userRepository.findByUsername("user1")).thenReturn(Optional.of(user));
 
     when(dbConfigRepo.findById(dbId)).thenReturn(Optional.of(mockConfig));
     when(dbSessionService.getConnection(session, mockConfig)).thenReturn(connection);
@@ -108,8 +161,18 @@ class SqlExecutorServiceTest {
     // Arrange
     Long dbId = 1L;
     DbConfig mockConfig = new DbConfig();
+    mockConfig.setId(dbId);
     mockConfig.setName("TestDB");
     mockConfig.setJdbcUrl("jdbc:postgresql://localhost:5432/testdb"); // Postgres Type
+
+    // Mock Auth
+    Authentication auth = mock(Authentication.class);
+    when(auth.getName()).thenReturn("user1");
+
+    User user = new User();
+    user.setUsername("user1");
+    user.setAccessibleDatabases(Set.of(mockConfig));
+    when(userRepository.findByUsername("user1")).thenReturn(Optional.of(user));
 
     when(dbConfigRepo.findById(dbId)).thenReturn(Optional.of(mockConfig));
     when(dbSessionService.getConnection(session, mockConfig)).thenReturn(connection);
@@ -137,7 +200,7 @@ class SqlExecutorServiceTest {
         .thenReturn(mockResult);
 
     // Act
-    Map<String, List<String>> schema = sqlExecutorService.getTableSchema(dbId, session);
+    Map<String, List<String>> schema = sqlExecutorService.getTableSchema(dbId, session, auth);
 
     // Assert
     assertEquals(2, schema.size());

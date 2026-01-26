@@ -3,29 +3,55 @@ package work.pollochang.sqlconsole.service;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import work.pollochang.sqlconsole.model.entity.DbConfig;
+import work.pollochang.sqlconsole.model.entity.User;
 import work.pollochang.sqlconsole.model.enums.DbType;
 import work.pollochang.sqlconsole.repository.DbConfigRepository;
+import work.pollochang.sqlconsole.repository.UserRepository;
 
 @Service
 @Slf4j
 public class DbConfigService {
 
   @Autowired private DbConfigRepository dbConfigRepository;
-
+  @Autowired private UserRepository userRepository;
   @Autowired private EncryptionService encryptionService;
 
+  @Transactional(readOnly = true)
   public List<DbConfig> getAllConfigs() {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    // Default to empty if no auth (shouldn't happen in secured endpoint)
+    if (auth == null) {
+      return List.of();
+    }
+
+    boolean isAdmin =
+        auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals(User.ROLE_ADMIN));
+
+    List<DbConfig> list;
+    if (isAdmin) {
+      list = dbConfigRepository.findAll();
+    } else {
+      String username = auth.getName();
+      User user =
+          userRepository
+              .findByUsername(username)
+              .orElseThrow(() -> new RuntimeException("User not found"));
+      list = new ArrayList<>(user.getAccessibleDatabases());
+    }
+
     // Return decrypted view for UI (but mask password)
-    List<DbConfig> list = dbConfigRepository.findAll();
     return list.stream()
         .map(
             c -> {
