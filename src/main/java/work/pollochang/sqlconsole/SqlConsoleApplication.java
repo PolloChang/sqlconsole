@@ -27,8 +27,9 @@ public class SqlConsoleApplication {
       // 初始化使用者
       if (userRepo.count() == 0) {
         userRepo.save(new User("user", encoder.encode("1234"), "ROLE_USER"));
-        userRepo.save(new User("admin", encoder.encode("1234"), "ROLE_AUDITOR"));
-        log.info("✅ 預設使用者已建立：user/1234, admin/1234");
+        userRepo.save(new User("auditor", encoder.encode("1234"), "ROLE_AUDITOR"));
+        userRepo.save(new User("admin", encoder.encode("1234"), "ROLE_ADMIN"));
+        log.info("✅ 預設使用者已建立：user/1234, auditor/1234, admin/1234");
       }
       // 初始化測試 DB 設定 (請確保本地有這個 Postgres DB)
       if (dbConfigService.getAllConfigs().isEmpty()) {

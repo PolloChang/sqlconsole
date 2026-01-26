@@ -1,12 +1,9 @@
 package work.pollochang.sqlconsole.service;
 
-import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import work.pollochang.sqlconsole.repository.UserRepository;
 
@@ -17,11 +14,6 @@ public class AuthService implements UserDetailsService {
 
   public AuthService(UserRepository userRepo) {
     this.userRepo = userRepo;
-  }
-
-  @Bean
-  public PasswordEncoder passwordEncoder() {
-    return new BCryptPasswordEncoder();
   }
 
   @Override

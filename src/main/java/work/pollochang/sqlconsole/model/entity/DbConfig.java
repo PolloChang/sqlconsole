@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import work.pollochang.sqlconsole.model.enums.DbType;
 
 @Entity
@@ -32,6 +34,8 @@ public class DbConfig {
 
   @ManyToMany(mappedBy = "accessibleDatabases")
   @com.fasterxml.jackson.annotation.JsonIgnore // Prevent circular reference
+  @ToString.Exclude
+  @EqualsAndHashCode.Exclude
   private Set<User> authorizedUsers = new java.util.HashSet<>();
 
   public DbConfig(String name, DbType dbType, String jdbcUrl, String dbUser, String dbPassword) {

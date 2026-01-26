@@ -116,16 +116,22 @@ class SqlExecutorServiceTest {
 
     // Mock JDBC Result (Columns)
     // Expected Query: SELECT table_name, column_name ...
+    // Use LinkedHashMap to ensure order for test stability, as the service relies on value order
+    Map<String, Object> row1 = new java.util.LinkedHashMap<>();
+    row1.put("table_name", "users");
+    row1.put("column_name", "id");
+
+    Map<String, Object> row2 = new java.util.LinkedHashMap<>();
+    row2.put("table_name", "users");
+    row2.put("column_name", "username");
+
+    Map<String, Object> row3 = new java.util.LinkedHashMap<>();
+    row3.put("table_name", "orders");
+    row3.put("column_name", "id");
+
     SqlResult mockResult =
         new SqlResult(
-            "SUCCESS",
-            null,
-            "OK",
-            List.of("table_name", "column_name"),
-            List.of(
-                Map.of("table_name", "users", "column_name", "id"),
-                Map.of("table_name", "users", "column_name", "username"),
-                Map.of("table_name", "orders", "column_name", "id")));
+            "SUCCESS", null, "OK", List.of("table_name", "column_name"), List.of(row1, row2, row3));
 
     when(jdbcExecutor.executeSql(eq(connection), contains("information_schema")))
         .thenReturn(mockResult);
