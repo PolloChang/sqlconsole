@@ -70,9 +70,14 @@ public class ExternalDriverService {
                 entity.setActive(true);
             }
 
+            // Handle library paths
+            if (request.getLibraryPaths() != null && !request.getLibraryPaths().isEmpty()) {
+                entity.setLibPaths(String.join(",", request.getLibraryPaths()));
+            }
+
             // 2. Create Context (Load Jar & Shim)
             // Note: We deliberately load AFTER check to avoid unnecessary loading
-            context = createDriverContext(request.getJarPath(), request.getDriverClassName());
+            context = createDriverContext(request.getJarPath(), request.getLibraryPaths(), request.getDriverClassName());
 
             // Auto-detect class name if not provided
             String resolvedClassName = context.shim.getWrappedDriver().getClass().getName();
@@ -105,18 +110,41 @@ public class ExternalDriverService {
             return;
         }
 
-        DriverContext context = createDriverContext(entity.getJarPath(), entity.getDriverClass());
+        List<String> libPaths = null;
+        if (entity.getLibPaths() != null && !entity.getLibPaths().isBlank()) {
+            libPaths = List.of(entity.getLibPaths().split(","));
+        }
+
+        DriverContext context = createDriverContext(entity.getJarPath(), libPaths, entity.getDriverClass());
         DriverManager.registerDriver(context.shim);
         activeDrivers.put(entity.getId(), context);
     }
 
     private DriverContext createDriverContext(String jarPathStr, String className) throws Exception {
+        return createDriverContext(jarPathStr, null, className);
+    }
+
+    private DriverContext createDriverContext(String jarPathStr, List<String> libPaths, String className) throws Exception {
         Path jarPath = Paths.get(jarPathStr);
         if (!jarPath.toFile().exists()) {
             throw new IllegalArgumentException("Jar file not found: " + jarPathStr);
         }
 
-        URL[] urls = {jarPath.toUri().toURL()};
+        List<URL> urlList = new java.util.ArrayList<>();
+        urlList.add(jarPath.toUri().toURL());
+
+        if (libPaths != null) {
+            for (String libPathStr : libPaths) {
+                Path libPath = Paths.get(libPathStr);
+                if (libPath.toFile().exists()) {
+                     urlList.add(libPath.toUri().toURL());
+                } else {
+                    log.warn("Dependency jar not found: {}", libPathStr);
+                }
+            }
+        }
+
+        URL[] urls = urlList.toArray(new URL[0]);
         ExternalDriverClassLoader classLoader = new ExternalDriverClassLoader(urls);
 
         Driver driver;

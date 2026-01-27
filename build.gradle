@@ -119,6 +119,16 @@ dependencies {
     // ✅ H2 資料庫 (如果你想做 Repository 的 @DataJpaTest 且不想連真實 Postgres)
     testRuntimeOnly 'com.h2database:h2'
     runtimeOnly 'com.h2database:h2'
+
+    // Maven Resolver Dependencies
+    implementation 'org.apache.maven.resolver:maven-resolver-api:1.9.18'
+    implementation 'org.apache.maven.resolver:maven-resolver-spi:1.9.18'
+    implementation 'org.apache.maven.resolver:maven-resolver-util:1.9.18'
+    implementation 'org.apache.maven.resolver:maven-resolver-impl:1.9.18'
+    implementation 'org.apache.maven.resolver:maven-resolver-connector-basic:1.9.18'
+    implementation 'org.apache.maven.resolver:maven-resolver-transport-file:1.9.18'
+    implementation 'org.apache.maven.resolver:maven-resolver-transport-http:1.9.18'
+    implementation 'org.apache.maven:maven-resolver-provider:3.9.6'
 }
 
 tasks.named('test') {

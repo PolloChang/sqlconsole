@@ -24,6 +24,9 @@ public class SysExternalDriver {
     @Column(name = "jar_path", nullable = false)
     private String jarPath;
 
+    @Column(name = "lib_paths", length = 4096)
+    private String libPaths; // Comma separated list of dependency jars
+
     @Column(name = "driver_class", nullable = false)
     private String driverClass;
 
