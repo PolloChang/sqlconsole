@@ -49,4 +49,8 @@ public class DriverShim implements Driver {
     public Logger getParentLogger() throws SQLFeatureNotSupportedException {
         return driver.getParentLogger();
     }
+
+    public Driver getWrappedDriver() {
+        return driver;
+    }
 }
