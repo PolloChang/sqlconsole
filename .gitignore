@@ -38,3 +38,5 @@ out/
 src/main/resources/static/js/node_modules/
 src/main/resources/static/js/package-lock.json
 src/main/resources/static/js/node_modules/
+
+*.log
