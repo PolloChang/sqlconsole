@@ -22,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
+import work.pollochang.sqlconsole.core.DbaProvider;
 import work.pollochang.sqlconsole.model.dto.SqlResult;
 import work.pollochang.sqlconsole.model.entity.DbConfig;
 import work.pollochang.sqlconsole.model.entity.User;
@@ -41,6 +42,7 @@ class SqlExecutorServiceTest {
   @Mock private DbSessionService dbSessionService;
   @Mock private JdbcExecutor jdbcExecutor;
   @Mock private UserRepository userRepository;
+  @Mock private List<DbaProvider> dbaProviders;
 
   @Mock private HttpSession session;
   @Mock private Connection connection;

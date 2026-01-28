@@ -32,12 +32,12 @@ import work.pollochang.sqlconsole.repository.UserRepository;
 @RequiredArgsConstructor
 public class SqlExecutorService {
 
-  @Autowired private AuditService auditService;
-  @Autowired private DbConfigRepository dbConfigRepo;
-  @Autowired private SqlHistoryRepository historyRepo;
-  @Autowired private DbSessionService dbSessionService;
-  @Autowired private JdbcExecutor jdbcExecutor; // ✅ 注入新的 Helper
-  @Autowired private UserRepository userRepository;
+  private final AuditService auditService;
+  private final DbConfigRepository dbConfigRepo;
+  private final SqlHistoryRepository historyRepo;
+  private final DbSessionService dbSessionService;
+  private final JdbcExecutor jdbcExecutor; // ✅ 注入新的 Helper
+  private final UserRepository userRepository;
 
   // 自動收集所有 Provider (包含 OS 版與未來 Premium 版)
   private final List<DbaProvider> dbaProviders;
