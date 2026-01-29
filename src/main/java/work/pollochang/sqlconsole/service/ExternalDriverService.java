@@ -47,7 +47,7 @@ public class ExternalDriverService {
     }
 
     @Transactional
-    public void registerDriver(DriverLoadRequest request) {
+    public Long registerDriver(DriverLoadRequest request) {
         log.info("Registering driver from path: {}", request.getJarPath());
 
         DriverContext context = null;
@@ -65,13 +65,20 @@ public class ExternalDriverService {
             if (existingOpt.isPresent()) {
                 entity = existingOpt.get();
                 if (entity.isActive()) {
-                     throw new RuntimeException("Driver with same SHA-256 is already active: " + entity.getDriverName());
+                    // 為了支援自動修復，如果已經 Active，直接回傳既有的 ID
+                    log.info("Driver is already active: {}", entity.getDriverName());
+                    return entity.getId();
+                    // 或者如果您希望嚴格檢查，可以保留原本的 Exception:
+                    // throw new RuntimeException("Driver with same SHA-256 is already active: " + entity.getDriverName());
                 }
                 log.info("Reactivating existing driver: {}", entity.getDriverName());
                 entity.setActive(true);
-                // Update other fields if needed, e.g. path might have moved?
+                // Update other fields if needed
                 entity.setJarPath(request.getJarPath());
-                entity.setDriverClass(request.getDriverClassName());
+                // 若 request 有指定新的 class name 則更新，否則保留舊的或稍後自動偵測
+                if (request.getDriverClassName() != null) {
+                    entity.setDriverClass(request.getDriverClassName());
+                }
             } else {
                 entity = new SysExternalDriver();
                 entity.setDriverName(request.getDriverClassName());
@@ -91,14 +98,14 @@ public class ExternalDriverService {
             context = createDriverContext(request.getJarPath(), request.getLibraryPaths(), request.getDriverClassName());
 
             // Auto-detect class name if not provided
-            String resolvedClassName = context.shim.getWrappedDriver().getClass().getName();
+            String resolvedClassName = context.shim().getWrappedDriver().getClass().getName();
             if (entity.getDriverClass() == null) {
                 entity.setDriverName(resolvedClassName);
                 entity.setDriverClass(resolvedClassName);
             }
 
             // 3. Register with DriverManager
-            DriverManager.registerDriver(context.shim);
+            DriverManager.registerDriver(context.shim());
             log.info("Registered DriverShim for {}", resolvedClassName);
 
             // 4. Save to DB
@@ -106,6 +113,9 @@ public class ExternalDriverService {
 
             // 5. Cache Context
             activeDrivers.put(entity.getId(), context);
+
+            // 6. Return the ID (關鍵修改)
+            return entity.getId();
 
         } catch (Exception e) {
             log.error("Failed to register driver", e);
@@ -248,5 +258,21 @@ public class ExternalDriverService {
 
     public List<SysExternalDriver> listLoadedDrivers() {
         return repository.findByIsActiveTrue();
+    }
+
+    /**
+     * 根據 Driver Class Name 尋找已啟用的 Driver ID
+     * @param driverClassName
+     * @return
+     */
+    public Long findActiveDriverIdByClass(String driverClassName) {
+        // 這裡假設我們找第一個符合且 Active 的 Driver
+        // 您可能需要在 Repository 新增 findFirstByDriverClassAndIsActiveTrue 方法
+        // 這裡示範用 Stream 過濾 (如果不考慮效能) 或是直接呼叫 Repository
+        return repository.findByIsActiveTrue().stream()
+                .filter(d -> driverClassName.equals(d.getDriverClass()))
+                .findFirst()
+                .map(SysExternalDriver::getId)
+                .orElse(null);
     }
 }
