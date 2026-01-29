@@ -31,6 +31,17 @@ public class SqlConsoleApplication {
         userRepo.save(new User("admin", encoder.encode("1234"), "ROLE_ADMIN"));
         log.info("✅ 預設使用者已建立：user/1234, auditor/1234, admin/1234");
       }
+      // 初始化測試 DB 設定 (請確保本地有這個 Postgres DB)
+      if (dbConfigService.getAllConfigs().isEmpty()) {
+        dbConfigService.saveConfig(
+            new DbConfig(
+                "Local Postgres",
+                DbType.POSTGRESQL,
+                "jdbc:postgresql://localhost:5432/sql_console_sys",
+                "postgres",
+                "password"));
+        log.info("✅ 預設資料庫連線已建立");
+      }
     };
   }
 }

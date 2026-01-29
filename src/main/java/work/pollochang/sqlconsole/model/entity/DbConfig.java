@@ -32,9 +32,6 @@ public class DbConfig {
   private String dbUser;
   private String dbPassword;
 
-  @Column(name = "driver_id")
-  private Long driverId; // 關聯到 SysExternalDriver 的 ID
-
   @ManyToMany(mappedBy = "accessibleDatabases")
   @com.fasterxml.jackson.annotation.JsonIgnore // Prevent circular reference
   @ToString.Exclude

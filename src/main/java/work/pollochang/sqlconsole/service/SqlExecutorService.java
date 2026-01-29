@@ -57,6 +57,7 @@ public class SqlExecutorService {
       return provider.get().getExecutionPlan(conn, sql);
     }
 
+    log.warn("No DBA Provider found for DB Type: {}", config.getDbType());
     return new DbaReport("No DBA Provider found for " + config.getDbType(), List.of(), -1);
   }
 

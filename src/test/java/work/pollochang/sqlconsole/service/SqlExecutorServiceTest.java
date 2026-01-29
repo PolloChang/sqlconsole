@@ -23,9 +23,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import work.pollochang.sqlconsole.core.DbaProvider;
+import work.pollochang.sqlconsole.core.DbaReport;
 import work.pollochang.sqlconsole.model.dto.SqlResult;
 import work.pollochang.sqlconsole.model.entity.DbConfig;
 import work.pollochang.sqlconsole.model.entity.User;
+import work.pollochang.sqlconsole.model.enums.DbType;
 import work.pollochang.sqlconsole.repository.DbConfigRepository;
 import work.pollochang.sqlconsole.repository.SqlHistoryRepository;
 import work.pollochang.sqlconsole.repository.UserRepository;
@@ -46,6 +48,62 @@ class SqlExecutorServiceTest {
 
   @Mock private HttpSession session;
   @Mock private Connection connection;
+
+  @Test
+  @DisplayName("測試 getExplainPlan - 成功找到 Provider")
+  void testGetExplainPlan_ProviderFound() {
+    // Arrange
+    Long dbId = 1L;
+    String sql = "SELECT * FROM users";
+    DbConfig mockConfig = new DbConfig();
+    mockConfig.setId(dbId);
+    mockConfig.setDbType(DbType.POSTGRESQL);
+
+    DbaProvider mockProvider = mock(DbaProvider.class);
+    when(mockProvider.supports("POSTGRESQL")).thenReturn(true);
+
+    DbaReport expectedReport = new DbaReport("Plan Content", List.of("Suggestion 1"), 100);
+    when(mockProvider.getExecutionPlan(connection, sql)).thenReturn(expectedReport);
+
+    // Instantiate Service Manually to inject real list
+    SqlExecutorService service = new SqlExecutorService(
+            auditService, dbConfigRepo, historyRepo, dbSessionService, jdbcExecutor, userRepository,
+            List.of(mockProvider)
+    );
+
+    // Act
+    DbaReport report = service.getExplainPlan(connection, mockConfig, sql);
+
+    // Assert
+    assertEquals(expectedReport, report);
+  }
+
+  @Test
+  @DisplayName("測試 getExplainPlan - 找不到 Provider")
+  void testGetExplainPlan_NoProviderFound() {
+    // Arrange
+    Long dbId = 1L;
+    String sql = "SELECT * FROM users";
+    DbConfig mockConfig = new DbConfig();
+    mockConfig.setId(dbId);
+    mockConfig.setDbType(DbType.ORACLE); // Use a type not in our list
+
+    DbaProvider mockProvider = mock(DbaProvider.class);
+    when(mockProvider.supports("ORACLE")).thenReturn(false);
+
+    // Instantiate Service Manually
+    SqlExecutorService service = new SqlExecutorService(
+            auditService, dbConfigRepo, historyRepo, dbSessionService, jdbcExecutor, userRepository,
+            List.of(mockProvider)
+    );
+
+    // Act
+    DbaReport report = service.getExplainPlan(connection, mockConfig, sql);
+
+    // Assert
+    assertEquals(-1, report.executionTimeMs());
+    assertEquals("No DBA Provider found for ORACLE", report.planContent());
+  }
 
   @Test
   @DisplayName("executeSql_Unauthorized_ShouldThrowException")

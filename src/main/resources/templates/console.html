@@ -51,14 +51,31 @@
     <button onclick="doSql('EXEC')">執行 SQL</button>
     <button onclick="doSql('COMMIT')">COMMIT</button>
     <button onclick="doSql('ROLLBACK')">ROLLBACK</button>
-    <button id="btn-analyze" onclick="doAnalyze()">🦁 Virtual DBA Analyze</button>
 </form>
 
-<div id="dba-report-area" style="margin-top: 10px; border: 1px solid #ddd; padding: 10px; display: none;">
-    <h4>DBA Report</h4>
-    <ul id="dba-suggestions" style="color: #d9534f;"></ul>
-    <pre id="dba-plan" style="background: #f5f5f5; padding: 5px;"></pre>
-</div>
+<fieldset style="margin-top: 20px; border: 1px solid #ccc; padding: 10px;">
+    <legend>🦁 Virtual DBA</legend>
+    <button id="btn-analyze" onclick="doAnalyze()">Analyze SQL Performance</button>
+
+    <div id="dba-loading" style="display:none; color: blue; margin-top: 10px;">
+        🦁 Analyzing SQL performance...
+    </div>
+
+    <div id="dba-error" style="display:none; color: red; margin-top: 10px; font-weight: bold;"></div>
+
+    <div id="dba-report-area" style="margin-top: 10px; display: none;">
+        <div id="dba-metrics"></div>
+
+        <h4>Suggestions</h4>
+        <ul id="dba-suggestions" style="color: #d9534f;"></ul>
+
+        <h4>Execution Plan</h4>
+        <div style="position: relative;">
+            <button onclick="copyPlan()" style="position: absolute; right: 5px; top: 5px; padding: 2px 5px;">Copy</button>
+            <pre id="dba-plan" style="background: #f5f5f5; padding: 30px 10px 10px 10px; overflow-x: auto; min-height: 50px;"></pre>
+        </div>
+    </div>
+</fieldset>
 
 <h3>結果</h3>
 <div id="msgArea"></div>
@@ -102,8 +119,16 @@
         let sql = "";
         if (window.getSmartSql) {
             sql = window.getSmartSql();
+        } else if ($("#sql").length) {
+            sql = $("#sql").val();
         }
+
         let dbId = $("#dbId").val();
+
+        // Reset UI
+        $("#dba-loading").show();
+        $("#dba-report-area").hide();
+        $("#dba-error").hide();
 
         $.ajax({
             url: "/api/sql/analyze",
@@ -111,7 +136,10 @@
             contentType: "application/json",
             data: JSON.stringify({ dbId: parseInt(dbId), sql: sql }),
             success: function(report) {
+                 $("#dba-loading").hide();
                  $("#dba-report-area").show();
+
+                 // Suggestions
                  $("#dba-suggestions").empty();
                  if (report.suggestions && report.suggestions.length > 0) {
                      report.suggestions.forEach(s => {
@@ -120,11 +148,42 @@
                  } else {
                      $("#dba-suggestions").append("<li>No suggestions.</li>");
                  }
+
+                 // Plan
                  $("#dba-plan").text(report.planContent || "No plan content.");
+
+                 // Metrics (Table)
+                 let metricsHtml = "";
+                 if (report.executionTimeMs > 0) {
+                     metricsHtml += "<table border='1' style='width: 100%; border-collapse: collapse; margin-bottom: 10px;'>";
+                     metricsHtml += "<tr><th style='background-color: #f2f2f2; width: 200px;'>Metric</th><th>Value</th></tr>";
+                     metricsHtml += `<tr><td>Estimated Execution Time</td><td>${report.executionTimeMs} ms</td></tr>`;
+                     metricsHtml += "</table>";
+                 }
+                 $("#dba-metrics").html(metricsHtml);
             },
             error: function(xhr) {
-                alert("Analyze failed: " + xhr.responseText);
+                $("#dba-loading").hide();
+                let msg = "Unknown error";
+                try {
+                    // Try to parse JSON error from Spring Boot
+                    let errJson = JSON.parse(xhr.responseText);
+                    msg = errJson.message || errJson.error || xhr.statusText;
+                } catch (e) {
+                    msg = xhr.responseText || xhr.statusText;
+                }
+                $("#dba-error").text("🦁 Analyze Error: " + msg).show();
             }
+        });
+    }
+
+    function copyPlan() {
+        let planText = $("#dba-plan").text();
+        navigator.clipboard.writeText(planText).then(function() {
+            alert("Plan copied to clipboard!");
+        }, function(err) {
+            console.error('Async: Could not copy text: ', err);
+            alert("Failed to copy plan.");
         });
     }
 
