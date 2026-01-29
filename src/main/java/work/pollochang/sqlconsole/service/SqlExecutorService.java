@@ -6,13 +6,18 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
+
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
+import work.pollochang.sqlconsole.core.DbaProvider;
+import work.pollochang.sqlconsole.core.DbaReport;
 import work.pollochang.sqlconsole.model.dto.SqlResult;
 import work.pollochang.sqlconsole.model.entity.DbConfig;
 import work.pollochang.sqlconsole.model.entity.SqlHistory;
@@ -24,6 +29,7 @@ import work.pollochang.sqlconsole.repository.UserRepository;
 /** 處理 SQL 解析、執行與審核。 */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class SqlExecutorService {
 
   @Autowired private AuditService auditService;
@@ -32,6 +38,27 @@ public class SqlExecutorService {
   @Autowired private DbSessionService dbSessionService;
   @Autowired private JdbcExecutor jdbcExecutor; // ✅ 注入新的 Helper
   @Autowired private UserRepository userRepository;
+
+  // 自動收集所有 Provider (包含 OS 版與未來 Premium 版)
+  private final List<DbaProvider> dbaProviders;
+
+  /**
+   * 獲取資料庫執行計畫 (Requirement 13)
+   */
+  public DbaReport getExplainPlan(Connection conn, DbConfig config, String sql) {
+    // 根據 DbType 動態尋找適用的 Provider
+    Optional<DbaProvider> provider = dbaProviders.stream()
+            .filter(p -> p.supports(String.valueOf(config.getDbType())))
+            .findFirst();
+
+    if (provider.isPresent()) {
+      log.debug("Using DBA Provider: {} for DB Type: {}",
+              provider.get().getClass().getSimpleName(), config.getDbType());
+      return provider.get().getExecutionPlan(conn, sql);
+    }
+
+    return new DbaReport("No DBA Provider found for " + config.getDbType(), List.of(), -1);
+  }
 
   private void validateAccess(Long dbId, String username, String role) {
     if (User.ROLE_ADMIN.equals(role)) {
