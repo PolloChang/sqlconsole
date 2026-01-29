@@ -2,8 +2,10 @@ package work.pollochang.sqlconsole.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import work.pollochang.sqlconsole.drivers.DriverPreUnloadEvent;
 import work.pollochang.sqlconsole.drivers.DriverShim;
 import work.pollochang.sqlconsole.drivers.ExternalDriverClassLoader;
 import work.pollochang.sqlconsole.model.dto.DriverLoadRequest;
@@ -31,9 +33,18 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ExternalDriverService {
 
     private final SysExternalDriverRepository repository;
+    private final ApplicationEventPublisher eventPublisher;
     private final Map<Long, DriverContext> activeDrivers = new ConcurrentHashMap<>();
 
     private record DriverContext(ExternalDriverClassLoader classLoader, DriverShim shim) {}
+
+    public Driver getDriverInstance(Long driverId) {
+        DriverContext context = activeDrivers.get(driverId);
+        if (context == null) {
+            throw new IllegalArgumentException("Driver not loaded or not found: " + driverId);
+        }
+        return context.shim;
+    }
 
     @Transactional
     public void registerDriver(DriverLoadRequest request) {
@@ -209,6 +220,10 @@ public class ExternalDriverService {
     @Transactional
     public void unloadDriver(Long id) {
         log.info("Unloading driver ID: {}", id);
+
+        // Publish event to notify dependents (e.g. Connection Pools) to close
+        eventPublisher.publishEvent(new DriverPreUnloadEvent(this, id));
+
         SysExternalDriver entity = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Driver not found: " + id));
 

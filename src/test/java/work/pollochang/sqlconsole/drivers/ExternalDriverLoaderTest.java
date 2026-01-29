@@ -15,22 +15,17 @@ import java.net.URL;
 
 import work.pollochang.sqlconsole.drivers.ExternalDriverClassLoader;
 import work.pollochang.sqlconsole.drivers.DriverShim;
-import work.pollochang.sqlconsole.util.TestDriverUtils;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import java.sql.DriverManager;
 
 public class ExternalDriverLoaderTest {
 
-    @TempDir
-    static Path tempDir;
-
     static Path jarPath;
 
     @BeforeAll
     static void setup() throws Exception {
-        jarPath = tempDir.resolve("dummy-driver.jar");
-        TestDriverUtils.createDummyDriverJar(jarPath);
+        jarPath = TestDriverUtils.createDummyDriverJar("work.pollochang.sqlconsole.drivers.test.DummyDriver");
     }
 
     @Test
