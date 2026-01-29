@@ -6,6 +6,12 @@ spring:
   config:
     activate:
       on-profile: dev
+  devtools:
+    restart:
+      enabled: true
+      additional-paths: src/main/java
+  thymeleaf:
+    cache: false
 
   datasource:
     url: jdbc:postgresql://localhost:5432/sql_console_sys

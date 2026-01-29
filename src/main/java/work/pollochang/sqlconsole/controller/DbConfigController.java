@@ -14,7 +14,7 @@ import work.pollochang.sqlconsole.service.DbConfigService;
 import work.pollochang.sqlconsole.service.EncryptionService;
 
 @Controller
-@PreAuthorize("hasRole('AUDITOR')")
+@PreAuthorize("hasRole('ADMIN')")
 public class DbConfigController {
 
   @Autowired private DbConfigService dbConfigService;

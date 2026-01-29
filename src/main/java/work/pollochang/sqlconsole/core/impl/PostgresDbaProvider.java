@@ -35,7 +35,7 @@ public class PostgresDbaProvider implements DbaProvider {
 
             return new DbaReport(
                     plan.toString(),
-                    List.of("基礎建議：請檢查是否漏掉 Index (OS 版本提供基礎分析)"),
+                    List.of("基礎建議：請檢查是否漏掉 Index "),
                     0 // 暫不實作耗時解析
             );
         } catch (Exception e) {
