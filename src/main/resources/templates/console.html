@@ -8,6 +8,21 @@
     <style>
         .cm-editor { border: 1px solid #ccc; height: 300px; font-size: 14px; background-color: white;}
         .cm-scroller { overflow: auto; }
+
+        /* Virtual Scroll Styles */
+        .vs-cell {
+            width: 150px;
+            min-width: 150px;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 4px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            font-size: 13px;
+            font-family: monospace;
+        }
     </style>
 </head>
 <body>
@@ -79,11 +94,48 @@
 
 <h3>結果</h3>
 <div id="msgArea"></div>
-<div id="resultTable"></div>
+
+<!-- Virtual Scroll Structure -->
+<div id="virtualScrollArea" style="display: none; margin-top: 10px;">
+    <!-- Header Container -->
+    <div id="vsHeader" style="overflow: hidden; background: #f0f0f0; border: 1px solid #ccc; border-bottom: none;">
+        <table style="table-layout: fixed; border-collapse: collapse; width: max-content;">
+            <thead id="vsThead"></thead>
+        </table>
+    </div>
+    <!-- Body Scroll Container -->
+    <div id="vsBody" style="height: 400px; overflow: auto; position: relative; border: 1px solid #ccc;">
+        <!-- Spacer to simulate total height -->
+        <div id="vsSpacer" style="height: 0;"></div>
+        <!-- Content wrapper positioned absolutely -->
+        <div id="vsContent" style="position: absolute; top: 0; left: 0;">
+            <table style="table-layout: fixed; border-collapse: collapse; width: max-content;">
+                <tbody id="vsTbody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
 
 <script>
+    // Global state for virtual scroll
+    const vsState = {
+        rows: [],
+        columns: [],
+        rowHeight: 30,
+        visibleRows: 20, // 400px / 30px approx 14
+        buffer: 5
+    };
+
     $(document).ready(function() {
+        // Virtual Scroll Listener
+        $("#vsBody").on("scroll", function() {
+            // Sync horizontal scroll
+            $("#vsHeader").scrollLeft($(this).scrollLeft());
+            // Trigger render
+            renderVirtualTable();
+        });
+
         // Load tables for the initial selection
         loadTables();
     });
@@ -215,7 +267,9 @@
     function renderResult(res) {
         let color = res.status === 'SUCCESS' ? 'green' : (res.status === 'PENDING' ? 'orange' : 'red');
         $("#msgArea").html(`<b style='color:${color}'>[${res.status}] ${res.message}</b>`);
-        $("#resultTable").empty();
+
+        // Hide virtual scroll area initially
+        $("#virtualScrollArea").hide();
 
         if (res.txStatus) {
             $("#txStatus").text(res.txStatus);
@@ -227,17 +281,63 @@
         }
 
         if (res.columns && res.columns.length > 0) {
-            let html = "<table border='1'><thead><tr>";
-            res.columns.forEach(col => html += `<th>${col}</th>`);
-            html += "</tr></thead><tbody>";
-            res.rows.forEach(row => {
-                html += "<tr>";
-                res.columns.forEach(col => html += `<td>${row[col]}</td>`);
-                html += "</tr>";
+            // Initialize State
+            vsState.rows = res.rows;
+            vsState.columns = res.columns;
+
+            // Render Header
+            let headHtml = "<tr>";
+            vsState.columns.forEach(col => {
+                headHtml += `<th class="vs-cell" title="${col}">${col}</th>`;
             });
-            html += "</tbody></table>";
-            $("#resultTable").html(html);
+            headHtml += "</tr>";
+            $("#vsThead").html(headHtml);
+
+            // Set Spacer Height
+            let totalHeight = vsState.rows.length * vsState.rowHeight;
+            $("#vsSpacer").css("height", totalHeight + "px");
+
+            // Show Area
+            $("#virtualScrollArea").show();
+
+            // Reset Scroll
+            $("#vsBody").scrollTop(0);
+            $("#vsBody").scrollLeft(0);
+
+            // Initial Render
+            renderVirtualTable();
         }
+    }
+
+    function renderVirtualTable() {
+        let scrollTop = $("#vsBody").scrollTop();
+        let startIndex = Math.floor(scrollTop / vsState.rowHeight);
+        let endIndex = startIndex + vsState.visibleRows + vsState.buffer;
+
+        // Boundary checks
+        if (startIndex < 0) startIndex = 0;
+        if (endIndex > vsState.rows.length) endIndex = vsState.rows.length;
+
+        // Slice rows
+        let visibleData = vsState.rows.slice(startIndex, endIndex);
+
+        // Render Rows
+        let bodyHtml = "";
+        visibleData.forEach(row => {
+            bodyHtml += `<tr style="height: ${vsState.rowHeight}px;">`;
+            vsState.columns.forEach(col => {
+                let val = row[col];
+                if (val === null || val === undefined) val = "(null)";
+                bodyHtml += `<td class="vs-cell" title="${val}">${val}</td>`;
+            });
+            bodyHtml += "</tr>";
+        });
+
+        $("#vsTbody").html(bodyHtml);
+
+        // Position Content
+        // We position the content at the top of the start index
+        $("#vsContent").css("transform", `translateY(${(startIndex * vsState.rowHeight)}px)`);
     }
 </script>
 </body>

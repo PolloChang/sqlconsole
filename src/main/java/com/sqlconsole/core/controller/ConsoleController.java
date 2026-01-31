@@ -15,6 +15,7 @@ import com.sqlconsole.core.service.AuditService;
 import com.sqlconsole.core.service.DbConfigService;
 import com.sqlconsole.core.service.SqlExecutorService;
 
+/** [LicenseGate] */
 @Controller
 public class ConsoleController {
 
