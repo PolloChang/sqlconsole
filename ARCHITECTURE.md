@@ -31,7 +31,7 @@ sqlConsole 採用 **「核心引擎 + 插件化能力 (Core-Plugin Architecture)
 
 ### 2.1 介面驅動開發 (Interface-Driven)
 
-* **Core 模組 (`work.pollochang.sqlconsole.core`)**：僅定義介面 (e.g., `AuditProvider`, `SecretManager`)。
+* **Core 模組 (`com.sqlconsole.core.core`)**：僅定義介面 (e.g., `AuditProvider`, `SecretManager`)。
 * **OS 實作**：提供基礎、非感知的 Null 或 Simple 實作。
 * **PM/ENT 實作**：於專屬 Repo 中實作進階邏輯 (e.g., `VaultSecretManager`, `ApprovalWorkflow`)。
 

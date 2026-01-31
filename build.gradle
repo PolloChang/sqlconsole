@@ -11,7 +11,7 @@ plugins {
     id 'pmd' //找出潛在 Bug 與不良實踐
 }
 
-group = 'work.pollochang.sqlconsole'
+group = 'com.sqlconsole.core'
 version = '0.0.1-SNAPSHOT'
 description = 'sqlconsole'
 

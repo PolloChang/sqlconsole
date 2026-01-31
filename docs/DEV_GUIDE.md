@@ -120,7 +120,7 @@ java -jar sqlconsole-premium-0.0.1.jar --spring.profiles.active=prod
 2. **Active Profiles**:
 * 打開 `Run/Debug Configurations`。
 * 在 **Active profiles** 填入 `dev`。
-* 確保選取的 `Main class` 是 `work.pollochang.sqlconsole.SqlconsolePremiumApplication` (若要測試付費功能)。
+* 確保選取的 `Main class` 是 `com.sqlconsole.core.SqlconsolePremiumApplication` (若要測試付費功能)。
 
 
 3. **Lombok**: 確保安裝 Lombok 插件並開啟 `Annotation Processing`。
