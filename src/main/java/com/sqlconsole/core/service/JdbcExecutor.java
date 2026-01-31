@@ -5,12 +5,28 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import org.springframework.stereotype.Component;
 import com.sqlconsole.core.model.dto.SqlResult;
 
 /** 負責單純的 JDBC 執行與結果集轉換。 讓 Service 層專注於流程控制，而非 JDBC API 細節。 */
 @Component
 public class JdbcExecutor {
+
+  public void streamQuery(Connection conn, String sql, Consumer<ResultSet> consumer)
+      throws SQLException {
+    String executableSql = sql.trim();
+    if (executableSql.endsWith(";")) {
+      executableSql = executableSql.substring(0, executableSql.length() - 1);
+    }
+
+    try (Statement stmt = conn.createStatement()) {
+      stmt.setFetchSize(1000); // Enable streaming
+      try (ResultSet rs = stmt.executeQuery(executableSql)) {
+        consumer.accept(rs);
+      }
+    }
+  }
 
   public SqlResult executeSql(Connection conn, String sql) throws SQLException {
     String status = "SUCCESS";

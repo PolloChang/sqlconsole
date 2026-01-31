@@ -42,6 +42,7 @@ class SqlExecutorServiceTest {
   @Mock private DbConfigRepository dbConfigRepo;
   @Mock private SqlHistoryRepository historyRepo;
   @Mock private DbSessionService dbSessionService;
+  @Mock private DbConfigService dbConfigService;
   @Mock private JdbcExecutor jdbcExecutor;
   @Mock private UserRepository userRepository;
   @Mock private List<DbaProvider> dbaProviders;
@@ -66,10 +67,16 @@ class SqlExecutorServiceTest {
     when(mockProvider.getExecutionPlan(connection, sql)).thenReturn(expectedReport);
 
     // Instantiate Service Manually to inject real list
-    SqlExecutorService service = new SqlExecutorService(
-            auditService, dbConfigRepo, historyRepo, dbSessionService, jdbcExecutor, userRepository,
-            List.of(mockProvider)
-    );
+    SqlExecutorService service =
+        new SqlExecutorService(
+            auditService,
+            dbConfigRepo,
+            historyRepo,
+            dbSessionService,
+            dbConfigService,
+            jdbcExecutor,
+            userRepository,
+            List.of(mockProvider));
 
     // Act
     DbaReport report = service.getExplainPlan(connection, mockConfig, sql);
@@ -92,10 +99,16 @@ class SqlExecutorServiceTest {
     when(mockProvider.supports("ORACLE")).thenReturn(false);
 
     // Instantiate Service Manually
-    SqlExecutorService service = new SqlExecutorService(
-            auditService, dbConfigRepo, historyRepo, dbSessionService, jdbcExecutor, userRepository,
-            List.of(mockProvider)
-    );
+    SqlExecutorService service =
+        new SqlExecutorService(
+            auditService,
+            dbConfigRepo,
+            historyRepo,
+            dbSessionService,
+            dbConfigService,
+            jdbcExecutor,
+            userRepository,
+            List.of(mockProvider));
 
     // Act
     DbaReport report = service.getExplainPlan(connection, mockConfig, sql);

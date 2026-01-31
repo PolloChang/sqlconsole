@@ -2,11 +2,13 @@ package com.sqlconsole.core.service;
 
 import jakarta.servlet.http.HttpSession;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
@@ -35,6 +37,7 @@ public class SqlExecutorService {
   private final DbConfigRepository dbConfigRepo;
   private final SqlHistoryRepository historyRepo;
   private final DbSessionService dbSessionService;
+  private final DbConfigService dbConfigService;
   private final JdbcExecutor jdbcExecutor; // ✅ 注入新的 Helper
   private final UserRepository userRepository;
 
@@ -58,6 +61,19 @@ public class SqlExecutorService {
 
     log.warn("No DBA Provider found for DB Type: {}", config.getDbType());
     return new DbaReport("No DBA Provider found for " + config.getDbType(), List.of(), -1);
+  }
+
+  public void streamQuery(
+      Long dbId, String sql, String username, String role, Consumer<ResultSet> consumer) {
+    validateAccess(dbId, username, role);
+    DbConfig config =
+        dbConfigRepo.findById(dbId).orElseThrow(() -> new RuntimeException("DB Not Found"));
+
+    try (Connection conn = dbConfigService.createConnection(config)) {
+      jdbcExecutor.streamQuery(conn, sql, consumer);
+    } catch (SQLException e) {
+      throw new RuntimeException("Stream query failed", e);
+    }
   }
 
   private void validateAccess(Long dbId, String username, String role) {
