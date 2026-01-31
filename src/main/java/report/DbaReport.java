@@ -3,7 +3,7 @@
  * This software is proprietary and confidential.
  * Unauthorized copying, via any medium, is strictly prohibited.
  */
-package com.sqlconsole.core;
+package report;
 
 import java.util.List;
 

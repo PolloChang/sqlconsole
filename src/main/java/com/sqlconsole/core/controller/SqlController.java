@@ -9,7 +9,7 @@ import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-import com.sqlconsole.core.DbaReport;
+import report.DbaReport;
 import com.sqlconsole.core.model.dto.AnalyzeRequest;
 import com.sqlconsole.core.model.entity.DbConfig;
 import com.sqlconsole.core.repository.DbConfigRepository;

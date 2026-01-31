@@ -9,7 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import com.sqlconsole.core.DbaReport;
+import report.DbaReport;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
