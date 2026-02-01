@@ -17,6 +17,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import report.DbaProvider;
 import report.DbaReport;
 import com.sqlconsole.core.model.dto.SqlResult;
@@ -63,6 +64,7 @@ public class SqlExecutorService {
     return new DbaReport("No DBA Provider found for " + config.getDbType(), List.of(), -1);
   }
 
+  @Transactional(readOnly = true)
   public void streamQuery(
       Long dbId, String sql, String username, String role, Consumer<ResultSet> consumer) {
     validateAccess(dbId, username, role);
