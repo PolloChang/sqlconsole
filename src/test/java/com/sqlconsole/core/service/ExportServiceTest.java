@@ -122,4 +122,32 @@ class ExportServiceTest {
     assertNotNull(jobStore.get("new"));
     assertFalse(oldFile.exists());
   }
+
+  @Test
+  void testExecuteBackgroundExport_Failed() throws Exception {
+    String jobId = "test-job-fail";
+    Long dbId = 1L;
+    String sql = "SELECT * FROM test";
+    String username = "user";
+
+    ExportJobStatus job =
+            ExportJobStatus.builder()
+                    .jobId(jobId)
+                    .status(ExportJobStatus.Status.PENDING)
+                    .createdTime(System.currentTimeMillis())
+                    .build();
+    Map<String, ExportJobStatus> jobStore =
+            (Map<String, ExportJobStatus>) ReflectionTestUtils.getField(exportService, "jobStore");
+    jobStore.put(jobId, job);
+
+    doThrow(new RuntimeException("DB Error"))
+            .when(sqlExecutorService)
+            .streamQuery(any(), any(), any(), any(), any());
+
+    exportService.executeBackgroundExport(jobId, dbId, sql, username);
+
+    ExportJobStatus status = exportService.getStatus(jobId);
+    assertEquals(ExportJobStatus.Status.FAILED, status.getStatus());
+    assertEquals("DB Error", status.getErrorMessage());
+  }
 }

@@ -47,6 +47,17 @@ public class ExportController {
       return ResponseEntity.notFound().build();
     }
 
+    // Path Traversal Check
+    try {
+      String canonicalPath = file.getCanonicalPath();
+      String tempDir = new File(System.getProperty("java.io.tmpdir")).getCanonicalPath();
+      if (!canonicalPath.startsWith(tempDir)) {
+        return ResponseEntity.status(403).build();
+      }
+    } catch (Exception e) {
+      return ResponseEntity.status(500).build();
+    }
+
     Resource resource = new FileSystemResource(file);
     return ResponseEntity.ok()
         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"export.xlsx\"")
