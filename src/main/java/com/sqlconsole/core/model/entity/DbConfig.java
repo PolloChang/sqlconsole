@@ -1,5 +1,6 @@
 package com.sqlconsole.core.model.entity;
 
+import com.sqlconsole.core.model.enums.DbType;
 import jakarta.persistence.*;
 import java.util.Set;
 import lombok.AllArgsConstructor;
@@ -7,7 +8,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
-import com.sqlconsole.core.model.enums.DbType;
 
 @Entity
 @Table(name = "db_configs")

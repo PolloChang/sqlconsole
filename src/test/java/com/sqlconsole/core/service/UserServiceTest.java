@@ -4,6 +4,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.sqlconsole.core.model.entity.DbConfig;
+import com.sqlconsole.core.model.entity.User;
+import com.sqlconsole.core.repository.DbConfigRepository;
+import com.sqlconsole.core.repository.UserRepository;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
@@ -13,10 +17,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import com.sqlconsole.core.model.entity.DbConfig;
-import com.sqlconsole.core.model.entity.User;
-import com.sqlconsole.core.repository.DbConfigRepository;
-import com.sqlconsole.core.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {

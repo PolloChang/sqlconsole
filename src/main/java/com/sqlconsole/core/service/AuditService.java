@@ -1,7 +1,7 @@
 package com.sqlconsole.core.service;
 
-import java.util.List;
 import com.sqlconsole.core.model.dto.SqlResult;
+import java.util.List;
 
 public interface AuditService {
   /**

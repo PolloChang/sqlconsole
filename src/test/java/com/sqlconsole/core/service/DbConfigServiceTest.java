@@ -3,6 +3,10 @@ package com.sqlconsole.core.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
+import com.sqlconsole.core.model.entity.DbConfig;
+import com.sqlconsole.core.model.entity.User;
+import com.sqlconsole.core.repository.DbConfigRepository;
+import com.sqlconsole.core.repository.UserRepository;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -18,10 +22,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import com.sqlconsole.core.model.entity.DbConfig;
-import com.sqlconsole.core.model.entity.User;
-import com.sqlconsole.core.repository.DbConfigRepository;
-import com.sqlconsole.core.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
 class DbConfigServiceTest {

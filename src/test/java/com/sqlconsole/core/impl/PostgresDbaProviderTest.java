@@ -5,60 +5,56 @@
  */
 package com.sqlconsole.core.impl;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import com.sqlconsole.core.report.DbaReport;
-
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+import com.sqlconsole.core.report.DbaReport;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
 class PostgresDbaProviderTest {
 
-    private PostgresDbaProvider provider;
+  private PostgresDbaProvider provider;
 
-    @Mock
-    private Connection mockConnection;
+  @Mock private Connection mockConnection;
 
-    @Mock
-    private Statement mockStatement;
+  @Mock private Statement mockStatement;
 
-    @Mock
-    private ResultSet mockResultSet;
+  @Mock private ResultSet mockResultSet;
 
-    @BeforeEach
-    void setUp() throws Exception {
-        MockitoAnnotations.openMocks(this);
-        provider = new PostgresDbaProvider();
+  @BeforeEach
+  void setUp() throws Exception {
+    MockitoAnnotations.openMocks(this);
+    provider = new PostgresDbaProvider();
 
-        // 設定 Mock 行為
-        when(mockConnection.createStatement()).thenReturn(mockStatement);
-        when(mockStatement.executeQuery(anyString())).thenReturn(mockResultSet);
-    }
+    // 設定 Mock 行為
+    when(mockConnection.createStatement()).thenReturn(mockStatement);
+    when(mockStatement.executeQuery(anyString())).thenReturn(mockResultSet);
+  }
 
-    @Test
-    void testGetExecutionPlan_Success() throws Exception {
-        // 模擬 ResultSet 內容
-        when(mockResultSet.next()).thenReturn(true, true, false);
-        when(mockResultSet.getString(1)).thenReturn("Seq Scan on users", "Total cost: 10.0");
+  @Test
+  void testGetExecutionPlan_Success() throws Exception {
+    // 模擬 ResultSet 內容
+    when(mockResultSet.next()).thenReturn(true, true, false);
+    when(mockResultSet.getString(1)).thenReturn("Seq Scan on users", "Total cost: 10.0");
 
-        DbaReport report = provider.getExecutionPlan(mockConnection, "SELECT * FROM users");
+    DbaReport report = provider.getExecutionPlan(mockConnection, "SELECT * FROM users");
 
-        assertNotNull(report);
-        assertTrue(report.planContent().contains("Seq Scan"));
-        assertEquals(1, report.suggestions().size());
-        verify(mockStatement, times(1)).executeQuery(contains("EXPLAIN (ANALYZE"));
-    }
+    assertNotNull(report);
+    assertTrue(report.planContent().contains("Seq Scan"));
+    assertEquals(1, report.suggestions().size());
+    verify(mockStatement, times(1)).executeQuery(contains("EXPLAIN (ANALYZE"));
+  }
 
-    @Test
-    void testSupports() {
-        assertTrue(provider.supports("POSTGRESQL"));
-        assertFalse(provider.supports("ORACLE"));
-    }
+  @Test
+  void testSupports() {
+    assertTrue(provider.supports("POSTGRESQL"));
+    assertFalse(provider.supports("ORACLE"));
+  }
 }

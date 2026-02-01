@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Virtual DBA Dashboard</title>
+    <script src="/js/jquery-3.7.1.min.js"></script>
+    <script type="module" src="/js/editor.bundle.js"></script>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .cm-editor { border: 1px solid #ccc; height: 300px; font-size: 14px; background-color: white;}
+        .cm-scroller { overflow: auto; }
+        pre { background: #f4f4f4; padding: 10px; overflow-x: auto; }
+        .suggestion { border-left: 5px solid #007bff; padding-left: 10px; margin-bottom: 10px; background: #f9f9f9; padding: 10px; }
+        .suggestion.INFO { border-color: #17a2b8; }
+        .suggestion.TIP { border-color: #28a745; }
+        .suggestion.WARN { border-color: #ffc107; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🦁 Virtual DBA Dashboard</h1>
+    <div>
+        Logged in as: <span th:text="${username}"></span>
+        <a href="/console" style="float: right;">Back to Console</a>
+    </div>
+    <hr/>
+
+    <div style="margin-bottom: 20px;">
+        <label for="dbId">Select Database:</label>
+        <select id="dbId">
+            <option th:each="db : ${dbs}" th:value="${db.id}" th:text="${db.name}"></option>
+        </select>
+    </div>
+
+    <div>
+        <label>SQL Query:</label>
+        <div id="editor"></div>
+    </div>
+
+    <button onclick="diagnose()" style="margin-top: 10px; padding: 10px 20px;">Diagnose SQL</button>
+
+    <div id="loading" style="display: none; color: blue; margin-top: 20px;">Analyzing...</div>
+    <div id="error" style="display: none; color: red; margin-top: 20px;"></div>
+
+    <div id="report" style="display: none; margin-top: 20px;">
+        <h2>Diagnostic Report</h2>
+
+        <h3>Suggestions</h3>
+        <div id="suggestions"></div>
+
+        <h3>Execution Plan</h3>
+        <pre id="plan"></pre>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        loadSchema();
+        $("#dbId").change(function() {
+            loadSchema();
+        });
+    });
+
+    function loadSchema() {
+        let dbId = $("#dbId").val();
+        if (!dbId) return;
+
+        $.get("/api/schema", { dbId: dbId }, function(schema) {
+             if (window.updateEditorSchema) {
+                 window.updateEditorSchema(schema);
+             }
+        });
+    }
+
+    function diagnose() {
+        const dbId = $("#dbId").val();
+        let sql = "";
+        if (window.getSmartSql) {
+            sql = window.getSmartSql();
+        }
+
+        if (!sql) {
+            alert("Please enter SQL");
+            return;
+        }
+
+        $("#loading").show();
+        $("#report").hide();
+        $("#error").hide();
+
+        $.post("/api/vdba/diagnose", { dbId: dbId, sql: sql }, function(report) {
+            $("#loading").hide();
+            $("#report").show();
+
+            // Render Suggestions
+            const $suggestions = $("#suggestions").empty();
+            if (report.suggestions && report.suggestions.length > 0) {
+                report.suggestions.forEach(s => {
+                    const $div = $("<div>").addClass("suggestion").addClass(s.type);
+                    $div.append($("<strong>").text(s.type + ": "));
+                    $div.append($("<span>").text(s.message));
+                    $suggestions.append($div);
+                });
+            } else {
+                $suggestions.append("<div>No specific suggestions.</div>");
+            }
+
+            // Render Plan
+            let planText = "";
+            if (report.plan) {
+                 if (report.plan.format === 'JSON') {
+                     try {
+                        const jsonObj = JSON.parse(report.plan.rawJson);
+                        planText = JSON.stringify(jsonObj, null, 2);
+                     } catch(e) {
+                        planText = report.plan.rawJson;
+                     }
+                 } else {
+                     planText = report.plan.rawJson;
+                 }
+            }
+            $("#plan").text(planText);
+
+        }).fail(function(xhr) {
+             $("#loading").hide();
+             $("#error").text("Error: " + xhr.responseText).show();
+        });
+    }
+</script>
+</body>
+</html>

@@ -3,6 +3,8 @@ package com.sqlconsole.core.service;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.sqlconsole.core.model.entity.User;
+import com.sqlconsole.core.repository.UserRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,8 +14,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import com.sqlconsole.core.model.entity.User;
-import com.sqlconsole.core.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {

@@ -1,5 +1,6 @@
 package com.sqlconsole.core.service;
 
+import com.sqlconsole.core.model.dto.SqlResult;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -7,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.springframework.stereotype.Component;
-import com.sqlconsole.core.model.dto.SqlResult;
 
 /** 負責單純的 JDBC 執行與結果集轉換。 讓 Service 層專注於流程控制，而非 JDBC API 細節。 */
 @Component
@@ -36,7 +36,8 @@ public class JdbcExecutor {
     return executeSql(conn, sql, maxRows, 0);
   }
 
-  public SqlResult executeSql(Connection conn, String sql, int limit, int offset) throws SQLException {
+  public SqlResult executeSql(Connection conn, String sql, int limit, int offset)
+      throws SQLException {
     String status = "SUCCESS";
     String msg;
     List<String> columns = new ArrayList<>();

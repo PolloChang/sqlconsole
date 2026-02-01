@@ -8,6 +8,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.sqlconsole.core.controller.ConsoleController;
+import com.sqlconsole.core.model.dto.SqlResult;
+import com.sqlconsole.core.repository.DbConfigRepository;
+import com.sqlconsole.core.repository.UserRepository;
+import com.sqlconsole.core.service.AuditService;
+import com.sqlconsole.core.service.AuthService;
+import com.sqlconsole.core.service.DbConfigService;
+import com.sqlconsole.core.service.SqlExecutorService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,13 +23,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import com.sqlconsole.core.model.dto.SqlResult;
-import com.sqlconsole.core.repository.DbConfigRepository;
-import com.sqlconsole.core.repository.UserRepository;
-import com.sqlconsole.core.service.AuditService;
-import com.sqlconsole.core.service.AuthService;
-import com.sqlconsole.core.service.DbConfigService;
-import com.sqlconsole.core.service.SqlExecutorService;
 
 @WebMvcTest(ConsoleController.class)
 class ConsoleControllerTest {

@@ -3,6 +3,7 @@ package com.sqlconsole.core.service;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.sqlconsole.core.model.entity.DbConfig;
 import jakarta.servlet.http.HttpSession;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -11,7 +12,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import com.sqlconsole.core.model.entity.DbConfig;
 
 @ExtendWith(MockitoExtension.class)
 class DbSessionServiceTest {

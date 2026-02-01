@@ -1,8 +1,8 @@
 package com.sqlconsole.core.service;
 
+import com.sqlconsole.core.util.EncryptionUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import com.sqlconsole.core.util.EncryptionUtil;
 
 @Service
 public class EncryptionService {

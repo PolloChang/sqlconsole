@@ -131,18 +131,18 @@ class ExportServiceTest {
     String username = "user";
 
     ExportJobStatus job =
-            ExportJobStatus.builder()
-                    .jobId(jobId)
-                    .status(ExportJobStatus.Status.PENDING)
-                    .createdTime(System.currentTimeMillis())
-                    .build();
+        ExportJobStatus.builder()
+            .jobId(jobId)
+            .status(ExportJobStatus.Status.PENDING)
+            .createdTime(System.currentTimeMillis())
+            .build();
     Map<String, ExportJobStatus> jobStore =
-            (Map<String, ExportJobStatus>) ReflectionTestUtils.getField(exportService, "jobStore");
+        (Map<String, ExportJobStatus>) ReflectionTestUtils.getField(exportService, "jobStore");
     jobStore.put(jobId, job);
 
     doThrow(new RuntimeException("DB Error"))
-            .when(sqlExecutorService)
-            .streamQuery(any(), any(), any(), any(), any());
+        .when(sqlExecutorService)
+        .streamQuery(any(), any(), any(), any(), any());
 
     exportService.executeBackgroundExport(jobId, dbId, sql, username);
 

@@ -1,9 +1,9 @@
 package com.sqlconsole.core.service.impl;
 
-import java.util.List;
-import org.springframework.stereotype.Service;
 import com.sqlconsole.core.model.dto.SqlResult;
 import com.sqlconsole.core.service.AuditService;
+import java.util.List;
+import org.springframework.stereotype.Service;
 
 // @ConditionalOnMissingBean 意思是：如果沒有別人 (付費版) 搶著做，我就做。
 @Service

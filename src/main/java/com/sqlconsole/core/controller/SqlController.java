@@ -5,19 +5,18 @@
  */
 package com.sqlconsole.core.controller;
 
-import jakarta.servlet.http.HttpSession;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.*;
-import com.sqlconsole.core.report.DbaReport;
 import com.sqlconsole.core.model.dto.AnalyzeRequest;
 import com.sqlconsole.core.model.entity.DbConfig;
+import com.sqlconsole.core.report.DbaReport;
 import com.sqlconsole.core.repository.DbConfigRepository;
 import com.sqlconsole.core.service.DbSessionService;
 import com.sqlconsole.core.service.SqlExecutorService;
-
+import jakarta.servlet.http.HttpSession;
 import java.sql.Connection;
 import java.sql.SQLException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
@@ -25,20 +24,23 @@ import java.sql.SQLException;
 @RequiredArgsConstructor
 public class SqlController {
 
-    private final SqlExecutorService sqlExecutorService;
-    private final DbSessionService dbSessionService;
-    private final DbConfigRepository dbConfigRepository;
+  private final SqlExecutorService sqlExecutorService;
+  private final DbSessionService dbSessionService;
+  private final DbConfigRepository dbConfigRepository;
 
-    @PostMapping("/analyze")
-    public DbaReport analyze(@RequestBody AnalyzeRequest request, HttpSession session) throws SQLException {
-        // Find DB Config
-        DbConfig config = dbConfigRepository.findById(request.dbId())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid DB ID"));
+  @PostMapping("/analyze")
+  public DbaReport analyze(@RequestBody AnalyzeRequest request, HttpSession session)
+      throws SQLException {
+    // Find DB Config
+    DbConfig config =
+        dbConfigRepository
+            .findById(request.dbId())
+            .orElseThrow(() -> new IllegalArgumentException("Invalid DB ID"));
 
-        // Get Connection (reusing session logic)
-        Connection conn = dbSessionService.getConnection(session, config);
+    // Get Connection (reusing session logic)
+    Connection conn = dbSessionService.getConnection(session, config);
 
-        // Execute Analyze
-        return sqlExecutorService.getExplainPlan(conn, config, request.sql());
-    }
+    // Execute Analyze
+    return sqlExecutorService.getExplainPlan(conn, config, request.sql());
+  }
 }

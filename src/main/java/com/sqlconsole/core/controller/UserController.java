@@ -1,5 +1,8 @@
 package com.sqlconsole.core.controller;
 
+import com.sqlconsole.core.model.entity.User;
+import com.sqlconsole.core.service.DbConfigService;
+import com.sqlconsole.core.service.UserService;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -8,9 +11,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
-import com.sqlconsole.core.model.entity.User;
-import com.sqlconsole.core.service.DbConfigService;
-import com.sqlconsole.core.service.UserService;
 
 @RestController
 @RequiredArgsConstructor

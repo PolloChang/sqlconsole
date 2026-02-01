@@ -142,19 +142,22 @@ public class ExportService {
   @Scheduled(fixedRate = 3600000) // Every hour
   public void cleanUpOldJobs() {
     long cutoff = System.currentTimeMillis() - 86400000; // 24 hours
-    jobStore.entrySet().removeIf(entry -> {
-      ExportJobStatus job = entry.getValue();
-      if (job.getCreatedTime() < cutoff) {
-        if (job.getFilePath() != null) {
-          File file = new File(job.getFilePath());
-          if (file.exists()) {
-            file.delete();
-          }
-        }
-        return true;
-      }
-      return false;
-    });
+    jobStore
+        .entrySet()
+        .removeIf(
+            entry -> {
+              ExportJobStatus job = entry.getValue();
+              if (job.getCreatedTime() < cutoff) {
+                if (job.getFilePath() != null) {
+                  File file = new File(job.getFilePath());
+                  if (file.exists()) {
+                    file.delete();
+                  }
+                }
+                return true;
+              }
+              return false;
+            });
   }
 
   public ExportJobStatus getStatus(String jobId) {

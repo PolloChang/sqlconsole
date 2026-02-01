@@ -1,5 +1,14 @@
 package com.sqlconsole.core.service;
 
+import com.sqlconsole.core.model.dto.SqlResult;
+import com.sqlconsole.core.model.entity.DbConfig;
+import com.sqlconsole.core.model.entity.SqlHistory;
+import com.sqlconsole.core.model.entity.User;
+import com.sqlconsole.core.report.DbaProvider;
+import com.sqlconsole.core.report.DbaReport;
+import com.sqlconsole.core.repository.DbConfigRepository;
+import com.sqlconsole.core.repository.SqlHistoryRepository;
+import com.sqlconsole.core.repository.UserRepository;
 import jakarta.servlet.http.HttpSession;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -10,7 +19,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
@@ -18,15 +26,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.sqlconsole.core.report.DbaProvider;
-import com.sqlconsole.core.report.DbaReport;
-import com.sqlconsole.core.model.dto.SqlResult;
-import com.sqlconsole.core.model.entity.DbConfig;
-import com.sqlconsole.core.model.entity.SqlHistory;
-import com.sqlconsole.core.model.entity.User;
-import com.sqlconsole.core.repository.DbConfigRepository;
-import com.sqlconsole.core.repository.SqlHistoryRepository;
-import com.sqlconsole.core.repository.UserRepository;
 
 /** 處理 SQL 解析、執行與審核。 */
 @Slf4j
@@ -46,18 +45,19 @@ public class SqlExecutorService {
   // 自動收集所有 Provider (包含 OS 版與未來 Premium 版)
   private final List<DbaProvider> dbaProviders;
 
-  /**
-   * 獲取資料庫執行計畫 (Requirement 13)
-   */
+  /** 獲取資料庫執行計畫 (Requirement 13) */
   public DbaReport getExplainPlan(Connection conn, DbConfig config, String sql) {
     // 根據 DbType 動態尋找適用的 Provider
-    Optional<DbaProvider> provider = dbaProviders.stream()
+    Optional<DbaProvider> provider =
+        dbaProviders.stream()
             .filter(p -> p.supports(String.valueOf(config.getDbType())))
             .findFirst();
 
     if (provider.isPresent()) {
-      log.debug("Using DBA Provider: {} for DB Type: {}",
-              provider.get().getClass().getSimpleName(), config.getDbType());
+      log.debug(
+          "Using DBA Provider: {} for DB Type: {}",
+          provider.get().getClass().getSimpleName(),
+          config.getDbType());
       return provider.get().getExecutionPlan(conn, sql);
     }
 
@@ -186,7 +186,13 @@ public class SqlExecutorService {
   }
 
   public SqlResult processRequest(
-      Long dbId, String sql, String username, String role, HttpSession session, int page, int size) {
+      Long dbId,
+      String sql,
+      String username,
+      String role,
+      HttpSession session,
+      int page,
+      int size) {
     validateAccess(dbId, username, role);
 
     DbConfig config =
@@ -259,13 +265,19 @@ public class SqlExecutorService {
       conn = dbSessionService.getConnection(session, config);
 
       // Smart Pagination with Fallback
-      String rewrittenSql = sqlPaginationService.applyPagination(sql, config.getDbType(), page, size);
+      String rewrittenSql =
+          sqlPaginationService.applyPagination(sql, config.getDbType(), page, size);
       boolean isPagingApplied = !rewrittenSql.equals(sql);
 
       // ✅ 將繁瑣的 JDBC 操作委派給 JdbcExecutor
       if (isPagingApplied) {
-        result = jdbcExecutor.executeSql(conn, rewrittenSql, 0); // Pagination applied in SQL, no hard limit needed (or limit=size?)
-        // If the rewritten SQL already has LIMIT, we don't strictly need setMaxRows, but safety is good.
+        result =
+            jdbcExecutor.executeSql(
+                conn,
+                rewrittenSql,
+                0); // Pagination applied in SQL, no hard limit needed (or limit=size?)
+        // If the rewritten SQL already has LIMIT, we don't strictly need setMaxRows, but safety is
+        // good.
         // However, applyPagination only returns different SQL if it succeeded.
       } else {
         // Fallback: Parsing failed or not SELECT. Use setMaxRows + ResultSet navigation.

@@ -5,6 +5,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.sqlconsole.core.model.dto.SqlResult;
+import com.sqlconsole.core.model.entity.DbConfig;
+import com.sqlconsole.core.model.entity.User;
+import com.sqlconsole.core.model.enums.DbType;
+import com.sqlconsole.core.report.DbaProvider;
+import com.sqlconsole.core.report.DbaReport;
+import com.sqlconsole.core.repository.DbConfigRepository;
+import com.sqlconsole.core.repository.SqlHistoryRepository;
+import com.sqlconsole.core.repository.UserRepository;
 import jakarta.servlet.http.HttpSession;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -22,15 +31,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
-import com.sqlconsole.core.report.DbaProvider;
-import com.sqlconsole.core.report.DbaReport;
-import com.sqlconsole.core.model.dto.SqlResult;
-import com.sqlconsole.core.model.entity.DbConfig;
-import com.sqlconsole.core.model.entity.User;
-import com.sqlconsole.core.model.enums.DbType;
-import com.sqlconsole.core.repository.DbConfigRepository;
-import com.sqlconsole.core.repository.SqlHistoryRepository;
-import com.sqlconsole.core.repository.UserRepository;
 
 @Slf4j
 @ExtendWith(MockitoExtension.class)
@@ -69,10 +69,17 @@ class SqlExecutorServiceTest {
 
     // Instantiate Service Manually to inject real list
     // ✅ 更新建構子參數，加入 dbConfigService
-    SqlExecutorService service = new SqlExecutorService(
-            auditService, dbConfigRepo, historyRepo, dbSessionService, dbConfigService, jdbcExecutor, userRepository, sqlPaginationService,
-            List.of(mockProvider)
-    );
+    SqlExecutorService service =
+        new SqlExecutorService(
+            auditService,
+            dbConfigRepo,
+            historyRepo,
+            dbSessionService,
+            dbConfigService,
+            jdbcExecutor,
+            userRepository,
+            sqlPaginationService,
+            List.of(mockProvider));
 
     // Act
     DbaReport report = service.getExplainPlan(connection, mockConfig, sql);
@@ -95,10 +102,17 @@ class SqlExecutorServiceTest {
     when(mockProvider.supports("ORACLE")).thenReturn(false);
 
     // Instantiate Service Manually
-    SqlExecutorService service = new SqlExecutorService(
-            auditService, dbConfigRepo, historyRepo, dbSessionService, dbConfigService, jdbcExecutor, userRepository, sqlPaginationService,
-            List.of(mockProvider)
-    );
+    SqlExecutorService service =
+        new SqlExecutorService(
+            auditService,
+            dbConfigRepo,
+            historyRepo,
+            dbSessionService,
+            dbConfigService,
+            jdbcExecutor,
+            userRepository,
+            sqlPaginationService,
+            List.of(mockProvider));
 
     // Act
     DbaReport report = service.getExplainPlan(connection, mockConfig, sql);

@@ -1,5 +1,8 @@
 package com.sqlconsole.core.service;
 
+import com.sqlconsole.core.model.entity.User;
+import com.sqlconsole.core.repository.DbConfigRepository;
+import com.sqlconsole.core.repository.UserRepository;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -7,9 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.sqlconsole.core.model.entity.User;
-import com.sqlconsole.core.repository.DbConfigRepository;
-import com.sqlconsole.core.repository.UserRepository;
 
 @Service
 @RequiredArgsConstructor

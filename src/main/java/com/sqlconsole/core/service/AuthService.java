@@ -1,11 +1,11 @@
 package com.sqlconsole.core.service;
 
+import com.sqlconsole.core.repository.UserRepository;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import com.sqlconsole.core.repository.UserRepository;
 
 @Service
 public class AuthService implements UserDetailsService {

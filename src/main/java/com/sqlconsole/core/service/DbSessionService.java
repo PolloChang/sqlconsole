@@ -1,11 +1,11 @@
 package com.sqlconsole.core.service;
 
+import com.sqlconsole.core.model.entity.DbConfig;
 import jakarta.servlet.http.HttpSession;
 import java.sql.Connection;
 import java.sql.SQLException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.sqlconsole.core.model.entity.DbConfig;
 
 /** 管理 Session 中的 JDBC 連線 */
 @Service

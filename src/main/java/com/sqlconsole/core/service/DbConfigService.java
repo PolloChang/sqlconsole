@@ -1,5 +1,10 @@
 package com.sqlconsole.core.service;
 
+import com.sqlconsole.core.model.entity.DbConfig;
+import com.sqlconsole.core.model.entity.User;
+import com.sqlconsole.core.model.enums.DbType;
+import com.sqlconsole.core.repository.DbConfigRepository;
+import com.sqlconsole.core.repository.UserRepository;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -14,11 +19,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.sqlconsole.core.model.entity.DbConfig;
-import com.sqlconsole.core.model.entity.User;
-import com.sqlconsole.core.model.enums.DbType;
-import com.sqlconsole.core.repository.DbConfigRepository;
-import com.sqlconsole.core.repository.UserRepository;
 
 @Service
 @Slf4j
