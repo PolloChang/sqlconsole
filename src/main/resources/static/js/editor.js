@@ -96,3 +96,47 @@ window.editorView = new EditorView({
     ],
     parent: document.getElementById("editor")
 });
+
+window.startExport = function() {
+    let sql = window.getSmartSql();
+    let dbId = $("#dbId").val();
+
+    $("#btn-export").prop("disabled", true);
+    $("#export-status").text("Submitting...").css("color", "black");
+
+    $.ajax({
+        url: "/api/export/execute",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ dbId: parseInt(dbId), sql: sql }),
+        success: function(jobId) {
+            $("#export-status").text("Export Started...").css("color", "blue");
+            pollExportStatus(jobId);
+        },
+        error: function(xhr) {
+            $("#btn-export").prop("disabled", false);
+            $("#export-status").text("Failed to start").css("color", "red");
+            alert("Export failed: " + xhr.responseText);
+        }
+    });
+};
+
+function pollExportStatus(jobId) {
+    let interval = setInterval(function() {
+        $.get("/api/export/status/" + jobId, function(status) {
+            if (status.status === 'COMPLETED') {
+                clearInterval(interval);
+                $("#export-status").text("Completed! Downloading...").css("color", "green");
+                $("#btn-export").prop("disabled", false);
+                window.location.href = "/api/export/download/" + jobId;
+                setTimeout(() => $("#export-status").text(""), 5000);
+            } else if (status.status === 'FAILED') {
+                clearInterval(interval);
+                $("#export-status").text("Failed: " + status.errorMessage).css("color", "red");
+                $("#btn-export").prop("disabled", false);
+            } else {
+                $("#export-status").text("Exporting... " + status.percentage + "%");
+            }
+        });
+    }, 1000);
+}

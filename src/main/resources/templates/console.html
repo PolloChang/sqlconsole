@@ -51,6 +51,8 @@
     <button onclick="doSql('EXEC')">執行 SQL</button>
     <button onclick="doSql('COMMIT')">COMMIT</button>
     <button onclick="doSql('ROLLBACK')">ROLLBACK</button>
+    <button id="btn-export" onclick="startExport()">Export to Excel</button>
+    <span id="export-status" style="margin-left: 10px; font-weight: bold;"></span>
 </form>
 
 <fieldset style="margin-top: 20px; border: 1px solid #ccc; padding: 10px;">
