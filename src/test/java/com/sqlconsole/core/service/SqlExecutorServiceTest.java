@@ -44,7 +44,6 @@ class SqlExecutorServiceTest {
   @Mock private DbSessionService dbSessionService;
   @Mock private JdbcExecutor jdbcExecutor;
   @Mock private UserRepository userRepository;
-  @Mock private SqlPaginationService sqlPaginationService;
   @Mock private List<DbaProvider> dbaProviders;
 
   @Mock private HttpSession session;
@@ -93,10 +92,10 @@ class SqlExecutorServiceTest {
     when(mockProvider.supports("ORACLE")).thenReturn(false);
 
     // Instantiate Service Manually
-    SqlExecutorService service = new SqlExecutorService(
-            auditService, dbConfigRepo, historyRepo, dbSessionService, jdbcExecutor, userRepository, sqlPaginationService,
-            List.of(mockProvider)
-    );
+      SqlExecutorService service = new SqlExecutorService(
+              auditService, dbConfigRepo, historyRepo, dbSessionService, jdbcExecutor, userRepository, sqlPaginationService,
+              List.of(mockProvider)
+      );
 
     // Act
     DbaReport report = service.getExplainPlan(connection, mockConfig, sql);
@@ -156,15 +155,11 @@ class SqlExecutorServiceTest {
     when(dbConfigRepo.findById(dbId)).thenReturn(Optional.of(mockConfig));
     when(dbSessionService.getConnection(session, mockConfig)).thenReturn(connection);
 
-    // Mock Pagination to return same SQL (trigger fallback)
-    when(sqlPaginationService.applyPagination(anyString(), any(), anyInt(), anyInt())).thenReturn(sql);
-
     SqlResult expectedResult =
         new SqlResult(
             "SUCCESS", null, "Query returned 1 rows", List.of("id"), List.of(Map.of("id", 100)));
 
-    // Expect fallback to maxRows=100
-    when(jdbcExecutor.executeSql(connection, sql, 100)).thenReturn(expectedResult);
+    when(jdbcExecutor.executeSql(connection, sql)).thenReturn(expectedResult);
 
     // Act
     SqlResult result = sqlExecutorService.processRequest(dbId, sql, "user1", "ROLE_USER", session);
@@ -177,7 +172,7 @@ class SqlExecutorServiceTest {
     assertEquals(1, result.rows().size());
     assertEquals(100, result.rows().get(0).get("id"));
 
-    verify(jdbcExecutor).executeSql(connection, sql, 100);
+    verify(jdbcExecutor).executeSql(connection, sql);
     verify(historyRepo).save(any());
   }
 
@@ -199,10 +194,7 @@ class SqlExecutorServiceTest {
     when(dbConfigRepo.findById(dbId)).thenReturn(Optional.of(mockConfig));
     when(dbSessionService.getConnection(session, mockConfig)).thenReturn(connection);
 
-    // Mock Pagination
-    when(sqlPaginationService.applyPagination(anyString(), any(), anyInt(), anyInt())).thenReturn(sql);
-
-    when(jdbcExecutor.executeSql(connection, sql, 100)).thenThrow(new SQLException("Syntax Error"));
+    when(jdbcExecutor.executeSql(connection, sql)).thenThrow(new SQLException("Syntax Error"));
     when(connection.getAutoCommit()).thenReturn(false);
 
     // Act
