@@ -13,6 +13,10 @@ import com.sqlconsole.core.model.dto.SqlResult;
 public class JdbcExecutor {
 
   public SqlResult executeSql(Connection conn, String sql) throws SQLException {
+    return executeSql(conn, sql, 0);
+  }
+
+  public SqlResult executeSql(Connection conn, String sql, int maxRows) throws SQLException {
     String status = "SUCCESS";
     String msg;
     List<String> columns = new ArrayList<>();
@@ -25,6 +29,9 @@ public class JdbcExecutor {
     }
 
     try (Statement stmt = conn.createStatement()) {
+      if (maxRows > 0) {
+        stmt.setMaxRows(maxRows);
+      }
       boolean hasResultSet = stmt.execute(executableSql);
       if (hasResultSet) {
         try (ResultSet rs = stmt.getResultSet()) {

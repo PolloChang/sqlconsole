@@ -6,5 +6,6 @@ public enum DbType {
   MSSQL,
   DB2,
   MYSQL,
-  MARIADB
+  MARIADB,
+  H2
 }

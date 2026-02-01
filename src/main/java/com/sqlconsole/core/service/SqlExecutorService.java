@@ -37,6 +37,7 @@ public class SqlExecutorService {
   private final DbSessionService dbSessionService;
   private final JdbcExecutor jdbcExecutor; // ✅ 注入新的 Helper
   private final UserRepository userRepository;
+  private final SqlPaginationService sqlPaginationService;
 
   // 自動收集所有 Provider (包含 OS 版與未來 Premium 版)
   private final List<DbaProvider> dbaProviders;
@@ -163,6 +164,11 @@ public class SqlExecutorService {
 
   public SqlResult processRequest(
       Long dbId, String sql, String username, String role, HttpSession session) {
+    return processRequest(dbId, sql, username, role, session, 1, 100);
+  }
+
+  public SqlResult processRequest(
+      Long dbId, String sql, String username, String role, HttpSession session, int page, int size) {
     validateAccess(dbId, username, role);
 
     DbConfig config =
@@ -180,7 +186,7 @@ public class SqlExecutorService {
       }
     }
 
-    return executeRawSql(session, config, sql, username, false);
+    return executeRawSqlWithPagination(session, config, sql, username, false, page, size);
   }
 
   /**
@@ -214,6 +220,17 @@ public class SqlExecutorService {
       String sql,
       String executor,
       boolean autoCommitAfterExec) {
+    return executeRawSqlWithPagination(session, config, sql, executor, autoCommitAfterExec, 1, 100);
+  }
+
+  public SqlResult executeRawSqlWithPagination(
+      HttpSession session,
+      DbConfig config,
+      String sql,
+      String executor,
+      boolean autoCommitAfterExec,
+      int page,
+      int size) {
     String status = "SUCCESS";
     String msg;
     String txStatus = "UNCOMMIT";
@@ -223,8 +240,20 @@ public class SqlExecutorService {
     try {
       conn = dbSessionService.getConnection(session, config);
 
+      // Smart Pagination with Fallback
+      String rewrittenSql = sqlPaginationService.applyPagination(sql, config.getDbType(), page, size);
+      boolean isPagingApplied = !rewrittenSql.equals(sql);
+
       // ✅ 將繁瑣的 JDBC 操作委派給 JdbcExecutor
-      result = jdbcExecutor.executeSql(conn, sql);
+      if (isPagingApplied) {
+        result = jdbcExecutor.executeSql(conn, rewrittenSql, 0); // Pagination applied in SQL, no hard limit needed (or limit=size?)
+        // If the rewritten SQL already has LIMIT, we don't strictly need setMaxRows, but safety is good.
+        // However, applyPagination only returns different SQL if it succeeded.
+      } else {
+        // Fallback: Parsing failed or not SELECT. Use setMaxRows.
+        // NOTE: For non-SELECT (e.g. UPDATE), setMaxRows might not be desired, but strict maxRows usually affects ResultSets only.
+        result = jdbcExecutor.executeSql(conn, sql, size);
+      }
       msg = result.message();
 
       // 處理自動 Commit (針對審核通過的工單)

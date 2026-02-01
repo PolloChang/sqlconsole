@@ -47,9 +47,14 @@ public class ConsoleController {
   @PostMapping("/api/execute")
   @ResponseBody
   public SqlResult execute(
-      @RequestParam Long dbId, @RequestParam String sql, Authentication auth, HttpSession session) {
+      @RequestParam Long dbId,
+      @RequestParam String sql,
+      @RequestParam(defaultValue = "1") int page,
+      @RequestParam(defaultValue = "100") int size,
+      Authentication auth,
+      HttpSession session) {
     String role = auth.getAuthorities().stream().findFirst().get().getAuthority();
-    return sqlService.processRequest(dbId, sql, auth.getName(), role, session);
+    return sqlService.processRequest(dbId, sql, auth.getName(), role, session, page, size);
   }
 
   @PostMapping("/api/approve")
