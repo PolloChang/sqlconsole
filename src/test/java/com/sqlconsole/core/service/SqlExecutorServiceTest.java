@@ -42,9 +42,11 @@ class SqlExecutorServiceTest {
   @Mock private DbConfigRepository dbConfigRepo;
   @Mock private SqlHistoryRepository historyRepo;
   @Mock private DbSessionService dbSessionService;
+  @Mock private DbConfigService dbConfigService;
   @Mock private JdbcExecutor jdbcExecutor;
   @Mock private UserRepository userRepository;
   @Mock private List<DbaProvider> dbaProviders;
+  @Mock private SqlPaginationService sqlPaginationService;
 
   @Mock private HttpSession session;
   @Mock private Connection connection;
@@ -66,8 +68,9 @@ class SqlExecutorServiceTest {
     when(mockProvider.getExecutionPlan(connection, sql)).thenReturn(expectedReport);
 
     // Instantiate Service Manually to inject real list
+    // ✅ 更新建構子參數，加入 dbConfigService
     SqlExecutorService service = new SqlExecutorService(
-            auditService, dbConfigRepo, historyRepo, dbSessionService, jdbcExecutor, userRepository, sqlPaginationService,
+            auditService, dbConfigRepo, historyRepo, dbSessionService, dbConfigService, jdbcExecutor, userRepository, sqlPaginationService,
             List.of(mockProvider)
     );
 
@@ -92,10 +95,10 @@ class SqlExecutorServiceTest {
     when(mockProvider.supports("ORACLE")).thenReturn(false);
 
     // Instantiate Service Manually
-      SqlExecutorService service = new SqlExecutorService(
-              auditService, dbConfigRepo, historyRepo, dbSessionService, jdbcExecutor, userRepository, sqlPaginationService,
-              List.of(mockProvider)
-      );
+    SqlExecutorService service = new SqlExecutorService(
+            auditService, dbConfigRepo, historyRepo, dbSessionService, dbConfigService, jdbcExecutor, userRepository, sqlPaginationService,
+            List.of(mockProvider)
+    );
 
     // Act
     DbaReport report = service.getExplainPlan(connection, mockConfig, sql);
