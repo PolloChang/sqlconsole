@@ -7,8 +7,8 @@ package com.sqlconsole.core.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import report.DbaProvider;
-import report.DbaReport;
+import com.sqlconsole.core.report.DbaProvider;
+import com.sqlconsole.core.report.DbaReport;
 
 import java.sql.Connection;
 import java.sql.ResultSet;

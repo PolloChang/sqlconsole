@@ -25,9 +25,9 @@ spring:
     show-sql: true     # 開發環境要看 SQL
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
 
 
 logging:
   level:
-    work.pollochang: DEBUG # 開發時顯示自己的除錯訊息
+    com.sqlconsole.core: DEBUG # 開發時顯示自己的除錯訊息
