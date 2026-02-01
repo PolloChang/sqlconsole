@@ -13,10 +13,14 @@ import com.sqlconsole.core.model.dto.SqlResult;
 public class JdbcExecutor {
 
   public SqlResult executeSql(Connection conn, String sql) throws SQLException {
-    return executeSql(conn, sql, 0);
+    return executeSql(conn, sql, 0, 0);
   }
 
   public SqlResult executeSql(Connection conn, String sql, int maxRows) throws SQLException {
+    return executeSql(conn, sql, maxRows, 0);
+  }
+
+  public SqlResult executeSql(Connection conn, String sql, int limit, int offset) throws SQLException {
     String status = "SUCCESS";
     String msg;
     List<String> columns = new ArrayList<>();
@@ -29,8 +33,9 @@ public class JdbcExecutor {
     }
 
     try (Statement stmt = conn.createStatement()) {
-      if (maxRows > 0) {
-        stmt.setMaxRows(maxRows);
+      if (limit > 0) {
+        // Optimize: setMaxRows to limit + offset to stop DB from fetching everything
+        stmt.setMaxRows(limit + offset);
       }
       boolean hasResultSet = stmt.execute(executableSql);
       if (hasResultSet) {
@@ -39,10 +44,32 @@ public class JdbcExecutor {
           int colCount = meta.getColumnCount();
           for (int i = 1; i <= colCount; i++) columns.add(meta.getColumnLabel(i));
 
-          while (rs.next()) {
+          // Skip Offset logic
+          if (offset > 0) {
+            // Try absolute positioning first if supported
+            try {
+              if (rs.getType() != ResultSet.TYPE_FORWARD_ONLY) {
+                rs.absolute(offset);
+              } else {
+                for (int i = 0; i < offset; i++) {
+                  if (!rs.next()) break;
+                }
+              }
+            } catch (SQLException e) {
+              // Fallback to simple loop
+              for (int i = 0; i < offset; i++) {
+                if (!rs.next()) break;
+              }
+            }
+          }
+
+          // Fetch Limit rows
+          int count = 0;
+          while ((limit <= 0 || count < limit) && rs.next()) {
             Map<String, Object> row = new LinkedHashMap<>();
             for (String col : columns) row.put(col, rs.getObject(col));
             rows.add(row);
+            count++;
           }
           msg = "Query returned " + rows.size() + " rows.";
         }

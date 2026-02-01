@@ -66,6 +66,13 @@
     <button onclick="doSql('EXEC')">執行 SQL</button>
     <button onclick="doSql('COMMIT')">COMMIT</button>
     <button onclick="doSql('ROLLBACK')">ROLLBACK</button>
+    <span style="margin-left: 10px;">Page Size:</span>
+    <select id="pageSizeSelect">
+        <option value="100">100</option>
+        <option value="200" selected>200</option>
+        <option value="500">500</option>
+        <option value="1000">1000</option>
+    </select>
 </form>
 
 <fieldset style="margin-top: 20px; border: 1px solid #ccc; padding: 10px;">
@@ -186,6 +193,7 @@
             vsState.currentSql = sql;
             vsState.currentDbId = dbId;
             vsState.currentPage = 1;
+            vsState.pageSize = parseInt($("#pageSizeSelect").val()); // User-defined page size
             vsState.rows = [];
             vsState.hasMore = true;
             vsState.isLoading = false;

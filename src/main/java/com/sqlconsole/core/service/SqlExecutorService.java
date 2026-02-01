@@ -250,9 +250,9 @@ public class SqlExecutorService {
         // If the rewritten SQL already has LIMIT, we don't strictly need setMaxRows, but safety is good.
         // However, applyPagination only returns different SQL if it succeeded.
       } else {
-        // Fallback: Parsing failed or not SELECT. Use setMaxRows.
-        // NOTE: For non-SELECT (e.g. UPDATE), setMaxRows might not be desired, but strict maxRows usually affects ResultSets only.
-        result = jdbcExecutor.executeSql(conn, sql, size);
+        // Fallback: Parsing failed or not SELECT. Use setMaxRows + ResultSet navigation.
+        int offset = (page - 1) * size;
+        result = jdbcExecutor.executeSql(conn, sql, size, offset);
       }
       msg = result.message();
 

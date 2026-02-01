@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <style>
+        .vs-cell { width: 150px; min-width: 150px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px; border: 1px solid #ccc; box-sizing: border-box; font-size: 13px; font-family: monospace; }
+        #vsHeader { overflow: hidden; background: #f0f0f0; border: 1px solid #ccc; border-bottom: none; }
+        #vsBody { height: 400px; overflow: auto; position: relative; border: 1px solid #ccc; }
+        table { table-layout: fixed; border-collapse: collapse; width: max-content; }
+        th { background: #eee; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h3>SQL Result Infinite Scroll Test</h3>
+    <button onclick="doSql('EXEC')">EXECUTE</button>
+    <div id="msgArea"></div>
+
+    <div id="virtualScrollArea" style="display: none; margin-top: 10px;">
+        <div id="vsHeader">
+            <table style="table-layout: fixed; border-collapse: collapse; width: max-content;">
+                <thead id="vsThead"></thead>
+            </table>
+        </div>
+        <div id="vsBody">
+            <div id="vsSpacer" style="height: 0;"></div>
+            <div id="vsContent" style="position: absolute; top: 0; left: 0;">
+                <table style="table-layout: fixed; border-collapse: collapse; width: max-content;">
+                    <tbody id="vsTbody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div id="vsLoading" style="display:none; text-align: center; background: #eee; padding: 5px; font-weight: bold;">
+            Loading more rows...
+        </div>
+    </div>
+
+    <script>
+    // MOCK API
+    $.post = function(url, data, callback) {
+        console.log("Mock POST:", url, data);
+        setTimeout(() => {
+            let rows = [];
+            let startId = (data.page - 1) * data.size;
+            // Generate 'size' rows
+            for(let i=0; i<data.size; i++) {
+                let id = startId + i;
+                rows.push({ id: id, name: "Row " + id, info: "Page " + data.page });
+            }
+            // Simulate end of data at 500 rows
+            if (startId >= 500) rows = [];
+
+            callback({
+                status: 'SUCCESS',
+                message: 'Fetched ' + rows.length + ' rows',
+                columns: ['id', 'name', 'info'],
+                rows: rows
+            });
+        }, 500); // 500ms delay
+        return { always: (cb) => { setTimeout(cb, 500); } };
+    };
+
+    // Global state
+    const vsState = {
+        rows: [],
+        columns: [],
+        rowHeight: 30,
+        visibleRows: 20,
+        buffer: 5,
+        currentPage: 1,
+        pageSize: 50, // Small page size for testing
+        isLoading: false,
+        hasMore: true,
+        currentSql: "SELECT * FROM mock",
+        currentDbId: 1
+    };
+
+    $(document).ready(function() {
+        $("#vsBody").on("scroll", function() {
+            $("#vsHeader").scrollLeft($(this).scrollLeft());
+
+            let scrollTop = $(this).scrollTop();
+            let scrollHeight = $(this)[0].scrollHeight;
+            let clientHeight = $(this).height();
+
+            if (scrollTop + clientHeight >= scrollHeight - 50) {
+                if (!vsState.isLoading && vsState.hasMore) {
+                    fetchData();
+                }
+            }
+            renderVirtualTable();
+        });
+    });
+
+    function doSql(action) {
+        vsState.currentPage = 1;
+        vsState.rows = [];
+        vsState.hasMore = true;
+        vsState.isLoading = false;
+        $("#virtualScrollArea").hide();
+        fetchData();
+    }
+
+    function fetchData() {
+        if (vsState.isLoading) return;
+        vsState.isLoading = true;
+        $("#vsLoading").show();
+
+        $.post("/api/execute", {
+            dbId: vsState.currentDbId,
+            sql: vsState.currentSql,
+            page: vsState.currentPage,
+            size: vsState.pageSize
+        }, function(res) {
+            handleData(res);
+        });
+    }
+
+    function handleData(res) {
+        if (vsState.currentPage === 1) {
+            vsState.columns = res.columns;
+            vsState.rows = res.rows;
+
+            let headHtml = "<tr>";
+            vsState.columns.forEach(col => { headHtml += `<th class="vs-cell">${col}</th>`; });
+            headHtml += "</tr>";
+            $("#vsThead").html(headHtml);
+
+            $("#virtualScrollArea").show();
+            $("#vsBody").scrollTop(0);
+        } else {
+            vsState.rows.push(...res.rows);
+        }
+
+        if (res.rows.length < vsState.pageSize) vsState.hasMore = false;
+        else vsState.hasMore = true;
+
+        vsState.currentPage++;
+
+        let totalHeight = vsState.rows.length * vsState.rowHeight;
+        $("#vsSpacer").css("height", totalHeight + "px");
+
+        renderVirtualTable();
+
+        vsState.isLoading = false;
+        $("#vsLoading").hide();
+    }
+
+    function renderVirtualTable() {
+        let scrollTop = $("#vsBody").scrollTop();
+        let startIndex = Math.floor(scrollTop / vsState.rowHeight);
+        let endIndex = startIndex + vsState.visibleRows + vsState.buffer;
+        if (startIndex < 0) startIndex = 0;
+        if (endIndex > vsState.rows.length) endIndex = vsState.rows.length;
+
+        let visibleData = vsState.rows.slice(startIndex, endIndex);
+        let bodyHtml = "";
+        visibleData.forEach(row => {
+            bodyHtml += `<tr style="height: ${vsState.rowHeight}px;">`;
+            vsState.columns.forEach(col => {
+                bodyHtml += `<td class="vs-cell">${row[col]}</td>`;
+            });
+            bodyHtml += "</tr>";
+        });
+        $("#vsTbody").html(bodyHtml);
+        $("#vsContent").css("transform", `translateY(${(startIndex * vsState.rowHeight)}px)`);
+    }
+    </script>
+</body>
+</html>
