@@ -40,7 +40,11 @@ class ExportServiceTest {
 
     // Setup Job in store
     ExportJobStatus job =
-        ExportJobStatus.builder().jobId(jobId).status(ExportJobStatus.Status.PENDING).build();
+        ExportJobStatus.builder()
+            .jobId(jobId)
+            .status(ExportJobStatus.Status.PENDING)
+            .createdTime(System.currentTimeMillis())
+            .build();
     Map<String, ExportJobStatus> jobStore =
         (Map<String, ExportJobStatus>) ReflectionTestUtils.getField(exportService, "jobStore");
     jobStore.put(jobId, job);
@@ -83,5 +87,39 @@ class ExportServiceTest {
 
     // Cleanup
     file.delete();
+  }
+
+  @Test
+  void testCleanUpOldJobs() throws Exception {
+    // Setup jobs
+    long now = System.currentTimeMillis();
+    long oldTime = now - 90000000; // > 24 hours
+
+    Map<String, ExportJobStatus> jobStore =
+        (Map<String, ExportJobStatus>) ReflectionTestUtils.getField(exportService, "jobStore");
+
+    // Create temp file for old job
+    File oldFile = File.createTempFile("old_job", ".xlsx");
+
+    ExportJobStatus oldJob =
+        ExportJobStatus.builder()
+            .jobId("old")
+            .createdTime(oldTime)
+            .filePath(oldFile.getAbsolutePath())
+            .build();
+
+    ExportJobStatus newJob =
+        ExportJobStatus.builder().jobId("new").createdTime(now).filePath(null).build();
+
+    jobStore.put("old", oldJob);
+    jobStore.put("new", newJob);
+
+    // Execute cleanup
+    exportService.cleanUpOldJobs();
+
+    // Verify
+    assertNull(jobStore.get("old"));
+    assertNotNull(jobStore.get("new"));
+    assertFalse(oldFile.exists());
   }
 }

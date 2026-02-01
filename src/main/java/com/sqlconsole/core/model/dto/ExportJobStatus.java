@@ -15,6 +15,7 @@ public class ExportJobStatus {
   private int percentage;
   private String filePath;
   private String errorMessage;
+  private long createdTime;
 
   public enum Status {
     PENDING,
