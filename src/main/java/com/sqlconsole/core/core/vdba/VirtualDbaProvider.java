@@ -29,4 +29,19 @@ public interface VirtualDbaProvider {
    * @return A list of suggestions.
    */
   List<DbaSuggestion> getSuggestions(Connection conn, String sql);
+
+  /**
+   * Returns whether this provider supports advanced diagnostics (e.g. AWR, ASH).
+   *
+   * @return true if advanced diagnostics are supported, false otherwise.
+   */
+  boolean supportsAdvancedDiagnostics();
+
+  /**
+   * Normalizes the raw JSON execution plan into a unified tree structure.
+   *
+   * @param rawJson The raw JSON string from the database.
+   * @return The root node of the unified execution tree, or null if parsing fails.
+   */
+  UnifiedExecutionNode normalize(String rawJson);
 }

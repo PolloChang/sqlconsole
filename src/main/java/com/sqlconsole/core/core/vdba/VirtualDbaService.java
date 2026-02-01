@@ -7,10 +7,12 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 /** Service for Virtual DBA diagnostics. */
@@ -37,7 +39,8 @@ public class VirtualDbaService {
    * @param sql The SQL query to analyze.
    * @return A report containing the execution plan and suggestions.
    */
-  public VirtualDbaReport diagnose(Long dbConfigId, String sql) {
+  @Async("exportTaskExecutor")
+  public CompletableFuture<VirtualDbaReport> diagnose(Long dbConfigId, String sql) {
     DbConfig config = dbConfigService.getConfigById(dbConfigId);
     if (config == null) {
       throw new IllegalArgumentException("Database configuration not found for ID: " + dbConfigId);
@@ -47,19 +50,20 @@ public class VirtualDbaService {
     VirtualDbaProvider provider = providerMap.get(dbType);
 
     if (provider == null) {
-      return new VirtualDbaReport(
-          new ExecutionPlan("{}", "JSON"),
-          List.of(
-              new DbaSuggestion(
-                  "INFO",
-                  "Virtual DBA not supported for "
-                      + dbType
-                      + ". Upgrade to Premium for full support.")));
+      return CompletableFuture.completedFuture(
+          new VirtualDbaReport(
+              new ExecutionPlan("{}", "JSON"),
+              List.of(
+                  new DbaSuggestion(
+                      "INFO",
+                      "Virtual DBA not supported for "
+                          + dbType
+                          + ". Upgrade to Premium for full support.")),
+              null));
     }
 
     try (Connection conn = dbConfigService.createConnection(config)) {
       // Ensure safety: Disable auto-commit to prevent DML execution from persisting
-      // This is critical for providers like PostgreSQL where EXPLAIN ANALYZE executes the query.
       if (conn.getAutoCommit()) {
         conn.setAutoCommit(false);
       }
@@ -67,15 +71,20 @@ public class VirtualDbaService {
       try {
         ExecutionPlan plan = provider.explain(conn, sql);
         List<DbaSuggestion> suggestions = provider.getSuggestions(conn, sql);
-        return new VirtualDbaReport(plan, suggestions);
+        UnifiedExecutionNode normalizedPlan = provider.normalize(plan.rawJson());
+
+        return CompletableFuture.completedFuture(
+            new VirtualDbaReport(plan, suggestions, normalizedPlan));
       } finally {
-        // Always rollback, regardless of success or failure
         conn.rollback();
       }
     } catch (SQLException e) {
       log.error("Error diagnosing SQL for DB: {}", dbConfigId, e);
-      return new VirtualDbaReport(
-          new ExecutionPlan("{\"error\": \"" + e.getMessage() + "\"}", "JSON"), List.of());
+      return CompletableFuture.completedFuture(
+          new VirtualDbaReport(
+              new ExecutionPlan("{\"error\": \"" + e.getMessage() + "\"}", "JSON"),
+              List.of(),
+              null));
     }
   }
 }

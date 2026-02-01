@@ -8,6 +8,7 @@ import com.sqlconsole.core.model.enums.DbType;
 import com.sqlconsole.core.service.DbConfigService;
 import java.sql.Connection;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,23 +42,28 @@ class VirtualDbaServiceTest {
     when(dbConfigService.createConnection(config)).thenReturn(connection);
     when(provider.explain(connection, sql)).thenReturn(new ExecutionPlan("{}", "JSON"));
     when(provider.getSuggestions(connection, sql)).thenReturn(List.of());
+    when(provider.normalize(anyString())).thenReturn(null);
 
-    VirtualDbaReport report = service.diagnose(dbId, sql);
+    CompletableFuture<VirtualDbaReport> future = service.diagnose(dbId, sql);
+    VirtualDbaReport report = future.get();
 
     assertNotNull(report);
     assertEquals("{}", report.plan().rawJson());
     verify(provider).explain(connection, sql);
+    // Verify rollback called
+    verify(connection).rollback();
   }
 
   @Test
-  void testDiagnose_Fallback() {
+  void testDiagnose_Fallback() throws Exception {
     Long dbId = 2L;
     DbConfig config = new DbConfig();
     config.setDbType(DbType.MYSQL); // Unsupported in this setup
 
     when(dbConfigService.getConfigById(dbId)).thenReturn(config);
 
-    VirtualDbaReport report = service.diagnose(dbId, "SELECT 1");
+    CompletableFuture<VirtualDbaReport> future = service.diagnose(dbId, "SELECT 1");
+    VirtualDbaReport report = future.get();
 
     assertNotNull(report);
     assertTrue(report.suggestions().stream().anyMatch(s -> s.message().contains("not supported")));

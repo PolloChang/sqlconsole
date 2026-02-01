@@ -15,6 +15,14 @@
         .suggestion.INFO { border-color: #17a2b8; }
         .suggestion.TIP { border-color: #28a745; }
         .suggestion.WARN { border-color: #ffc107; }
+
+        /* Tree Visualization */
+        .plan-tree { list-style-type: none; padding-left: 20px; }
+        .plan-node { margin: 5px 0; padding: 5px; border: 1px solid #ddd; border-radius: 4px; background: #fff; }
+        .plan-node.high-cost { border-color: red; background-color: #ffe6e6; }
+        .node-header { display: flex; justify-content: space-between; font-weight: bold; }
+        .node-details { font-size: 0.9em; color: #555; margin-top: 3px; }
+        .node-cost { color: #d9534f; }
     </style>
 </head>
 <body>
@@ -49,8 +57,13 @@
         <h3>Suggestions</h3>
         <div id="suggestions"></div>
 
-        <h3>Execution Plan</h3>
-        <pre id="plan"></pre>
+        <h3>Execution Plan Visualization</h3>
+        <div id="plan-viz"></div>
+
+        <details>
+            <summary>Raw Execution Plan (JSON)</summary>
+            <pre id="plan"></pre>
+        </details>
     </div>
 </div>
 
@@ -106,7 +119,15 @@
                 $suggestions.append("<div>No specific suggestions.</div>");
             }
 
-            // Render Plan
+            // Render Visualization
+            const $viz = $("#plan-viz").empty();
+            if (report.normalizedPlan) {
+                $viz.append(renderNode(report.normalizedPlan));
+            } else {
+                $viz.text("Visualization not available for this plan.");
+            }
+
+            // Render Raw Plan
             let planText = "";
             if (report.plan) {
                  if (report.plan.format === 'JSON') {
@@ -126,6 +147,38 @@
              $("#loading").hide();
              $("#error").text("Error: " + xhr.responseText).show();
         });
+    }
+
+    function renderNode(node) {
+        const $ul = $("<ul>").addClass("plan-tree");
+        const $li = $("<li>");
+
+        const isHighCost = (node.operation.includes("Seq Scan") || node.operation.includes("ALL"));
+        const $div = $("<div>").addClass("plan-node").toggleClass("high-cost", isHighCost);
+
+        const $header = $("<div>").addClass("node-header");
+        $header.append($("<span>").text(node.operation));
+        if (node.cost > 0) {
+             $header.append($("<span>").addClass("node-cost").text("Cost: " + node.cost));
+        }
+
+        const $details = $("<div>").addClass("node-details");
+        let detailsText = "";
+        if (node.rows > 0) detailsText += "Rows: " + node.rows + " ";
+        if (node.actualTime > 0) detailsText += "| Time: " + node.actualTime + "ms";
+        $details.text(detailsText);
+
+        $div.append($header).append($details);
+        $li.append($div);
+
+        if (node.children && node.children.length > 0) {
+            node.children.forEach(child => {
+                $li.append(renderNode(child));
+            });
+        }
+
+        $ul.append($li);
+        return $ul;
     }
 </script>
 </body>

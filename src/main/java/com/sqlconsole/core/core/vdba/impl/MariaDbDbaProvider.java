@@ -1,7 +1,10 @@
 package com.sqlconsole.core.core.vdba.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sqlconsole.core.core.vdba.DbaSuggestion;
 import com.sqlconsole.core.core.vdba.ExecutionPlan;
+import com.sqlconsole.core.core.vdba.UnifiedExecutionNode;
 import com.sqlconsole.core.core.vdba.VirtualDbaProvider;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -15,6 +18,8 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class MariaDbDbaProvider implements VirtualDbaProvider {
+
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Override
   public String getProviderType() {
@@ -45,5 +50,58 @@ public class MariaDbDbaProvider implements VirtualDbaProvider {
     List<DbaSuggestion> suggestions = new ArrayList<>();
     suggestions.add(new DbaSuggestion("INFO", "Use 'SHOW WARNINGS' to see optimizer notes."));
     return suggestions;
+  }
+
+  @Override
+  public boolean supportsAdvancedDiagnostics() {
+    return false;
+  }
+
+  @Override
+  public UnifiedExecutionNode normalize(String rawJson) {
+    try {
+      JsonNode root = objectMapper.readTree(rawJson);
+      return convertMariaNode(root.path("query_block"));
+    } catch (Exception e) {
+      log.error("Failed to normalize MariaDB plan", e);
+    }
+    return null;
+  }
+
+  private UnifiedExecutionNode convertMariaNode(JsonNode node) {
+    if (node == null || node.isMissingNode()) return null;
+
+    String operation = "SELECT";
+    double cost = 0.0;
+    double rows = 0.0;
+    List<UnifiedExecutionNode> children = new ArrayList<>();
+
+    if (node.has("table")) {
+      JsonNode table = node.get("table");
+      operation =
+          "Table: "
+              + table.path("table_name").asText()
+              + " ("
+              + table.path("access_type").asText()
+              + ")";
+      rows = table.path("rows").asDouble(0.0);
+      if (table.has("cost_info")) {
+        cost = table.get("cost_info").path("read_cost").asDouble(0.0); // Or eval_cost
+      }
+    } else if (node.has("nested_loop")) {
+      operation = "NESTED LOOP";
+      for (JsonNode child : node.get("nested_loop")) {
+        children.add(convertMariaNode(child.get("table"))); // Simplification
+      }
+    } else {
+      // Very basic handling for other structures
+      operation = "UNKNOWN";
+    }
+
+    if (node.has("cost_info")) {
+      cost = node.get("cost_info").path("query_cost").asDouble(0.0);
+    }
+
+    return new UnifiedExecutionNode(operation, cost, rows, 0.0, children);
   }
 }

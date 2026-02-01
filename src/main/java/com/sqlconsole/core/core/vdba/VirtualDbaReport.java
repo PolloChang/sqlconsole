@@ -7,5 +7,7 @@ import java.util.List;
  *
  * @param plan The execution plan.
  * @param suggestions A list of optimization suggestions.
+ * @param normalizedPlan The normalized execution plan tree.
  */
-public record VirtualDbaReport(ExecutionPlan plan, List<DbaSuggestion> suggestions) {}
+public record VirtualDbaReport(
+    ExecutionPlan plan, List<DbaSuggestion> suggestions, UnifiedExecutionNode normalizedPlan) {}

@@ -3,6 +3,7 @@ package com.sqlconsole.core.controller;
 import com.sqlconsole.core.core.vdba.VirtualDbaReport;
 import com.sqlconsole.core.core.vdba.VirtualDbaService;
 import com.sqlconsole.core.service.DbConfigService;
+import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -30,7 +31,8 @@ public class VirtualDbaController {
 
   @PostMapping("/api/vdba/diagnose")
   @ResponseBody
-  public VirtualDbaReport diagnose(@RequestParam Long dbId, @RequestParam String sql) {
+  public CompletableFuture<VirtualDbaReport> diagnose(
+      @RequestParam Long dbId, @RequestParam String sql) {
     // Access Control: Ensure user has access to the requested DB
     boolean hasAccess =
         dbConfigService.getAllConfigs().stream().anyMatch(db -> db.getId().equals(dbId));
