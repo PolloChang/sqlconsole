@@ -114,6 +114,10 @@
             </table>
         </div>
     </div>
+    <!-- Loading Indicator -->
+    <div id="vsLoading" style="display:none; text-align: center; background: #eee; padding: 5px; font-weight: bold;">
+        Loading more rows...
+    </div>
 </div>
 
 
@@ -124,7 +128,13 @@
         columns: [],
         rowHeight: 30,
         visibleRows: 20, // 400px / 30px approx 14
-        buffer: 5
+        buffer: 5,
+        currentPage: 1,
+        pageSize: 200,
+        isLoading: false,
+        hasMore: true,
+        currentSql: null,
+        currentDbId: null
     };
 
     $(document).ready(function() {
@@ -132,6 +142,19 @@
         $("#vsBody").on("scroll", function() {
             // Sync horizontal scroll
             $("#vsHeader").scrollLeft($(this).scrollLeft());
+
+            // Check if near bottom for infinite scroll
+            let scrollTop = $(this).scrollTop();
+            let scrollHeight = $(this)[0].scrollHeight;
+            let clientHeight = $(this).height();
+            let threshold = 50; // pixels from bottom
+
+            if (scrollTop + clientHeight >= scrollHeight - threshold) {
+                if (!vsState.isLoading && vsState.hasMore) {
+                    fetchData();
+                }
+            }
+
             // Trigger render
             renderVirtualTable();
         });
@@ -153,18 +176,107 @@
 
     function doSql(action) {
         let sql = "";
+        let dbId = $("#dbId").val();
+
         if (action === 'EXEC') {
             if (window.getSmartSql) {
                 sql = window.getSmartSql();
             }
-        } else {
-            sql = action;
-        }
-        let dbId = $("#dbId").val();
+            // Reset State for new query
+            vsState.currentSql = sql;
+            vsState.currentDbId = dbId;
+            vsState.currentPage = 1;
+            vsState.rows = [];
+            vsState.hasMore = true;
+            vsState.isLoading = false;
 
-        $.post("/api/execute", { dbId: dbId, sql: sql }, function(res) {
-            renderResult(res);
+            $("#virtualScrollArea").hide();
+            $("#msgArea").text("Executing...");
+
+            fetchData();
+        } else {
+            // Commit/Rollback - no pagination needed
+            $.post("/api/execute", { dbId: dbId, sql: action }, function(res) {
+                renderResult(res);
+            });
+        }
+    }
+
+    function fetchData() {
+        if (vsState.isLoading) return;
+        vsState.isLoading = true;
+        $("#vsLoading").show();
+
+        $.post("/api/execute", {
+            dbId: vsState.currentDbId,
+            sql: vsState.currentSql,
+            page: vsState.currentPage,
+            size: vsState.pageSize
+        }, function(res) {
+            handleData(res);
+        }).always(function() {
+            vsState.isLoading = false;
+            $("#vsLoading").hide();
         });
+    }
+
+    function handleData(res) {
+        let color = res.status === 'SUCCESS' ? 'green' : (res.status === 'PENDING' ? 'orange' : 'red');
+        $("#msgArea").html(`<b style='color:${color}'>[${res.status}] ${res.message}</b>`);
+
+        if (res.txStatus) {
+            $("#txStatus").text(res.txStatus);
+            $("#txStatus").css('color', res.txStatus === 'UNCOMMIT' ? 'red' : 'blue');
+        }
+
+        if (res.status !== 'SUCCESS') {
+            return;
+        }
+
+        if (res.columns && res.columns.length > 0) {
+            // If first page, initialize headers
+            if (vsState.currentPage === 1) {
+                vsState.columns = res.columns;
+                vsState.rows = res.rows;
+
+                // Render Header
+                let headHtml = "<tr>";
+                vsState.columns.forEach(col => {
+                    headHtml += `<th class="vs-cell" title="${col}">${col}</th>`;
+                });
+                headHtml += "</tr>";
+                $("#vsThead").html(headHtml);
+
+                $("#virtualScrollArea").show();
+                $("#vsBody").scrollTop(0);
+                $("#vsBody").scrollLeft(0);
+            } else {
+                // Append rows
+                vsState.rows.push(...res.rows);
+            }
+
+            // Update hasMore
+            if (res.rows.length < vsState.pageSize) {
+                vsState.hasMore = false;
+            } else {
+                vsState.hasMore = true;
+            }
+
+            // Increment page
+            vsState.currentPage++;
+
+            // Update Spacer Height
+            let totalHeight = vsState.rows.length * vsState.rowHeight;
+            $("#vsSpacer").css("height", totalHeight + "px");
+
+            // Render
+            renderVirtualTable();
+        } else {
+            // No columns returned (e.g. UPDATE/DELETE)
+            if (vsState.currentPage === 1) {
+                $("#virtualScrollArea").hide();
+            }
+        }
     }
 
     function doAnalyze() {
@@ -265,48 +377,16 @@
     }
 
     function renderResult(res) {
+        // Legacy function for COMMIT/ROLLBACK or simple results
         let color = res.status === 'SUCCESS' ? 'green' : (res.status === 'PENDING' ? 'orange' : 'red');
         $("#msgArea").html(`<b style='color:${color}'>[${res.status}] ${res.message}</b>`);
 
-        // Hide virtual scroll area initially
-        $("#virtualScrollArea").hide();
-
         if (res.txStatus) {
             $("#txStatus").text(res.txStatus);
-            if (res.txStatus === 'UNCOMMIT') {
-                $("#txStatus").css('color', 'red');
-            } else {
-                $("#txStatus").css('color', 'blue');
-            }
+            $("#txStatus").css('color', res.txStatus === 'UNCOMMIT' ? 'red' : 'blue');
         }
 
-        if (res.columns && res.columns.length > 0) {
-            // Initialize State
-            vsState.rows = res.rows;
-            vsState.columns = res.columns;
-
-            // Render Header
-            let headHtml = "<tr>";
-            vsState.columns.forEach(col => {
-                headHtml += `<th class="vs-cell" title="${col}">${col}</th>`;
-            });
-            headHtml += "</tr>";
-            $("#vsThead").html(headHtml);
-
-            // Set Spacer Height
-            let totalHeight = vsState.rows.length * vsState.rowHeight;
-            $("#vsSpacer").css("height", totalHeight + "px");
-
-            // Show Area
-            $("#virtualScrollArea").show();
-
-            // Reset Scroll
-            $("#vsBody").scrollTop(0);
-            $("#vsBody").scrollLeft(0);
-
-            // Initial Render
-            renderVirtualTable();
-        }
+        $("#virtualScrollArea").hide();
     }
 
     function renderVirtualTable() {
