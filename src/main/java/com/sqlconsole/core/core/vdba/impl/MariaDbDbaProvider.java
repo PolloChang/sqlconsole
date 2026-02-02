@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -46,7 +47,8 @@ public class MariaDbDbaProvider implements VirtualDbaProvider {
   }
 
   @Override
-  public List<DbaSuggestion> getSuggestions(Connection conn, String sql) {
+  public List<DbaSuggestion> getSuggestions(
+      Connection conn, String sql, UnifiedExecutionNode plan) {
     List<DbaSuggestion> suggestions = new ArrayList<>();
     suggestions.add(new DbaSuggestion("INFO", "Use 'SHOW WARNINGS' to see optimizer notes."));
     return suggestions;
@@ -102,6 +104,7 @@ public class MariaDbDbaProvider implements VirtualDbaProvider {
       cost = node.get("cost_info").path("query_cost").asDouble(0.0);
     }
 
-    return new UnifiedExecutionNode(operation, cost, rows, 0.0, children);
+    return new UnifiedExecutionNode(
+        operation, cost, rows, 0.0, children, Collections.emptyMap());
   }
 }

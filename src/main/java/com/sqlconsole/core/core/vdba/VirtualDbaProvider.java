@@ -26,9 +26,10 @@ public interface VirtualDbaProvider {
    *
    * @param conn The database connection.
    * @param sql The SQL query.
+   * @param plan The normalized execution plan (optional).
    * @return A list of suggestions.
    */
-  List<DbaSuggestion> getSuggestions(Connection conn, String sql);
+  List<DbaSuggestion> getSuggestions(Connection conn, String sql, UnifiedExecutionNode plan);
 
   /**
    * Returns whether this provider supports advanced diagnostics (e.g. AWR, ASH).

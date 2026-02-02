@@ -11,18 +11,32 @@
         .cm-editor { border: 1px solid #ccc; height: 300px; font-size: 14px; background-color: white;}
         .cm-scroller { overflow: auto; }
         pre { background: #f4f4f4; padding: 10px; overflow-x: auto; }
-        .suggestion { border-left: 5px solid #007bff; padding-left: 10px; margin-bottom: 10px; background: #f9f9f9; padding: 10px; }
+        .suggestion { border-left: 5px solid #007bff; padding-left: 10px; margin-bottom: 10px; background: #f9f9f9; padding: 10px; position: relative; }
         .suggestion.INFO { border-color: #17a2b8; }
         .suggestion.TIP { border-color: #28a745; }
         .suggestion.WARN { border-color: #ffc107; }
+        .suggestion.ADVISOR { border-color: #d9534f; background-color: #fff5f5; }
+
+        .copy-btn { position: absolute; right: 10px; top: 10px; padding: 2px 5px; cursor: pointer; }
 
         /* Tree Visualization */
         .plan-tree { list-style-type: none; padding-left: 20px; }
-        .plan-node { margin: 5px 0; padding: 5px; border: 1px solid #ddd; border-radius: 4px; background: #fff; }
-        .plan-node.high-cost { border-color: red; background-color: #ffe6e6; }
+        .plan-node { margin: 5px 0; padding: 5px; border: 1px solid #ddd; border-radius: 4px; background: #fff; cursor: pointer; }
+        .plan-node:hover { background-color: #f0f8ff; }
+
+        /* Heatmap: Red Zone */
+        .plan-node.heatmap-red { background-color: lightcoral; border-color: darkred; color: white; }
+        .plan-node.heatmap-red .node-details { color: #eee; }
+        .plan-node.heatmap-red .node-cost { color: white; }
+
         .node-header { display: flex; justify-content: space-between; font-weight: bold; }
         .node-details { font-size: 0.9em; color: #555; margin-top: 3px; }
         .node-cost { color: #d9534f; }
+
+        /* Collapsible */
+        .children-container { display: block; }
+        .children-container.collapsed { display: none; }
+        .toggle-icon { margin-right: 5px; cursor: pointer; display: inline-block; width: 10px; }
     </style>
 </head>
 <body>
@@ -113,6 +127,17 @@
                     const $div = $("<div>").addClass("suggestion").addClass(s.type);
                     $div.append($("<strong>").text(s.type + ": "));
                     $div.append($("<span>").text(s.message));
+
+                    // Copy button for advisor
+                    if (s.type === 'ADVISOR') {
+                         const $btn = $("<button>").addClass("copy-btn").text("Copy");
+                         $btn.click(function() {
+                             navigator.clipboard.writeText(s.message);
+                             alert("Copied to clipboard!");
+                         });
+                         $div.append($btn);
+                    }
+
                     $suggestions.append($div);
                 });
             } else {
@@ -153,13 +178,28 @@
         const $ul = $("<ul>").addClass("plan-tree");
         const $li = $("<li>");
 
-        const isHighCost = (node.operation.includes("Seq Scan") || node.operation.includes("ALL"));
-        const $div = $("<div>").addClass("plan-node").toggleClass("high-cost", isHighCost);
+        // Heatmap Logic: Check relativeCost tag from backend
+        let isHeatmapRed = false;
+        if (node.tags && node.tags.relativeCost && node.tags.relativeCost > 50.0) {
+            isHeatmapRed = true;
+        }
+
+        const $div = $("<div>").addClass("plan-node").toggleClass("heatmap-red", isHeatmapRed);
+
+        // Toggle Logic
+        const hasChildren = node.children && node.children.length > 0;
+        const $toggle = $("<span>").addClass("toggle-icon").text(hasChildren ? "[-]" : "•");
 
         const $header = $("<div>").addClass("node-header");
-        $header.append($("<span>").text(node.operation));
+        $header.prepend($toggle);
+        $header.append($("<span>").text(" " + node.operation));
+
         if (node.cost > 0) {
-             $header.append($("<span>").addClass("node-cost").text("Cost: " + node.cost));
+             let costText = "Cost: " + node.cost;
+             if (node.tags && node.tags.relativeCost) {
+                 costText += ` (${node.tags.relativeCost.toFixed(1)}%)`;
+             }
+             $header.append($("<span>").addClass("node-cost").text(costText));
         }
 
         const $details = $("<div>").addClass("node-details");
@@ -171,9 +211,19 @@
         $div.append($header).append($details);
         $li.append($div);
 
-        if (node.children && node.children.length > 0) {
+        if (hasChildren) {
+            const $childrenContainer = $("<div>").addClass("children-container");
             node.children.forEach(child => {
-                $li.append(renderNode(child));
+                $childrenContainer.append(renderNode(child));
+            });
+            $li.append($childrenContainer);
+
+            // Toggle Click Event
+            $div.click(function(e) {
+                // Prevent toggling when clicking copy button or text selection if needed, but here simple click is fine
+                $childrenContainer.toggleClass("collapsed");
+                $toggle.text($childrenContainer.hasClass("collapsed") ? "[+]" : "[-]");
+                e.stopPropagation();
             });
         }
 

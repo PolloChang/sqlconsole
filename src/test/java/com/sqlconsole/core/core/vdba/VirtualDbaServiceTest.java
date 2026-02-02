@@ -3,10 +3,13 @@ package com.sqlconsole.core.core.vdba;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.sqlconsole.core.core.vdba.analysis.AnalysisResult;
+import com.sqlconsole.core.core.vdba.analysis.ExecutionPlanAnalyzer;
 import com.sqlconsole.core.model.entity.DbConfig;
 import com.sqlconsole.core.model.enums.DbType;
 import com.sqlconsole.core.service.DbConfigService;
 import java.sql.Connection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +23,7 @@ class VirtualDbaServiceTest {
 
   @Mock private DbConfigService dbConfigService;
   @Mock private VirtualDbaProvider provider;
+  @Mock private ExecutionPlanAnalyzer analyzer;
   @Mock private Connection connection;
 
   private VirtualDbaService service;
@@ -27,7 +31,7 @@ class VirtualDbaServiceTest {
   @BeforeEach
   void setUp() {
     when(provider.getProviderType()).thenReturn("POSTGRESQL");
-    service = new VirtualDbaService(dbConfigService, List.of(provider));
+    service = new VirtualDbaService(dbConfigService, List.of(provider), analyzer);
     service.init();
   }
 
@@ -38,11 +42,17 @@ class VirtualDbaServiceTest {
     DbConfig config = new DbConfig();
     config.setDbType(DbType.POSTGRESQL);
 
+    UnifiedExecutionNode normalizedPlan =
+        new UnifiedExecutionNode("Root", 0.0, 0.0, 0.0, List.of(), Collections.emptyMap());
+
     when(dbConfigService.getConfigById(dbId)).thenReturn(config);
     when(dbConfigService.createConnection(config)).thenReturn(connection);
     when(provider.explain(connection, sql)).thenReturn(new ExecutionPlan("{}", "JSON"));
-    when(provider.getSuggestions(connection, sql)).thenReturn(List.of());
-    when(provider.normalize(anyString())).thenReturn(null);
+    when(provider.normalize(anyString())).thenReturn(normalizedPlan);
+    when(analyzer.analyze(normalizedPlan))
+        .thenReturn(new AnalysisResult(normalizedPlan, List.of()));
+    when(provider.getSuggestions(eq(connection), eq(sql), any(UnifiedExecutionNode.class)))
+        .thenReturn(mock(List.class)); // Return a mock list to avoid modifying immutable list issues if any
 
     CompletableFuture<VirtualDbaReport> future = service.diagnose(dbId, sql);
     VirtualDbaReport report = future.get();
@@ -50,6 +60,7 @@ class VirtualDbaServiceTest {
     assertNotNull(report);
     assertEquals("{}", report.plan().rawJson());
     verify(provider).explain(connection, sql);
+    verify(analyzer).analyze(normalizedPlan);
     // Verify rollback called
     verify(connection).rollback();
   }

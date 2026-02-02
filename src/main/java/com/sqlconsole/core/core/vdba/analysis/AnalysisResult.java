@@ -1,0 +1,8 @@
+package com.sqlconsole.core.core.vdba.analysis;
+
+import com.sqlconsole.core.core.vdba.DbaSuggestion;
+import com.sqlconsole.core.core.vdba.UnifiedExecutionNode;
+import java.util.List;
+
+/** Result of the execution plan analysis. */
+public record AnalysisResult(UnifiedExecutionNode enrichedRoot, List<DbaSuggestion> suggestions) {}

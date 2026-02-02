@@ -1,10 +1,13 @@
 package com.sqlconsole.core.core.vdba;
 
+import com.sqlconsole.core.core.vdba.analysis.AnalysisResult;
+import com.sqlconsole.core.core.vdba.analysis.ExecutionPlanAnalyzer;
 import com.sqlconsole.core.model.entity.DbConfig;
 import com.sqlconsole.core.service.DbConfigService;
 import jakarta.annotation.PostConstruct;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -23,6 +26,7 @@ public class VirtualDbaService {
 
   private final DbConfigService dbConfigService;
   private final List<VirtualDbaProvider> providerList;
+  private final ExecutionPlanAnalyzer analyzer;
   private Map<String, VirtualDbaProvider> providerMap;
 
   @PostConstruct
@@ -59,7 +63,8 @@ public class VirtualDbaService {
                       "Virtual DBA not supported for "
                           + dbType
                           + ". Upgrade to Premium for full support.")),
-              null));
+              null,
+              Collections.emptyMap()));
     }
 
     try (Connection conn = dbConfigService.createConnection(config)) {
@@ -69,12 +74,25 @@ public class VirtualDbaService {
       }
 
       try {
+        // 1. Get Plan
         ExecutionPlan plan = provider.explain(conn, sql);
-        List<DbaSuggestion> suggestions = provider.getSuggestions(conn, sql);
         UnifiedExecutionNode normalizedPlan = provider.normalize(plan.rawJson());
 
+        // 2. Analyze Plan (Heuristics)
+        AnalysisResult analysisResult = analyzer.analyze(normalizedPlan);
+        UnifiedExecutionNode enrichedPlan = analysisResult.enrichedRoot();
+        List<DbaSuggestion> heuristicSuggestions = analysisResult.suggestions();
+
+        // 3. Get Provider Specific Suggestions (Index Advisor)
+        List<DbaSuggestion> providerSuggestions =
+            provider.getSuggestions(conn, sql, enrichedPlan != null ? enrichedPlan : normalizedPlan);
+
+        // 4. Combine Suggestions
+        providerSuggestions.addAll(heuristicSuggestions);
+
         return CompletableFuture.completedFuture(
-            new VirtualDbaReport(plan, suggestions, normalizedPlan));
+            new VirtualDbaReport(
+                plan, providerSuggestions, enrichedPlan, Collections.emptyMap()));
       } finally {
         conn.rollback();
       }
@@ -84,7 +102,8 @@ public class VirtualDbaService {
           new VirtualDbaReport(
               new ExecutionPlan("{\"error\": \"" + e.getMessage() + "\"}", "JSON"),
               List.of(),
-              null));
+              null,
+              Collections.emptyMap()));
     }
   }
 }
