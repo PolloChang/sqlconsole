@@ -8,6 +8,32 @@
     <style>
         .cm-editor { border: 1px solid #ccc; height: 300px; font-size: 14px; background-color: white;}
         .cm-scroller { overflow: auto; }
+
+        /* Virtual Scroll Styles */
+        .vs-cell {
+            width: 150px;
+            min-width: 150px;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 4px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            font-size: 13px;
+            font-family: monospace;
+        }
+
+        .vs-cell-index {
+            width: 50px;
+            min-width: 50px;
+            text-align: center;
+            background-color: #f5f5f5;
+            font-weight: bold;
+            border-right: 2px solid #ddd;
+            position: sticky; /* 選用：若希望它在橫向滾動時固定，可自行調整 */
+            left: 0;
+        }
     </style>
 </head>
 <body>
@@ -53,8 +79,6 @@
     <button onclick="doSql('EXEC')">執行 SQL</button>
     <button onclick="doSql('COMMIT')">COMMIT</button>
     <button onclick="doSql('ROLLBACK')">ROLLBACK</button>
-    <button id="btn-export" onclick="startExport()">Export to Excel</button>
-    <span id="export-status" style="margin-left: 10px; font-weight: bold;"></span>
     <span style="margin-left: 10px;">Page Size:</span>
     <select id="pageSizeSelect">
         <option value="100">100</option>
@@ -66,11 +90,71 @@
 
 <h3>結果</h3>
 <div id="msgArea"></div>
-<div id="resultTable"></div>
+
+<!-- Virtual Scroll Structure -->
+<div id="virtualScrollArea" style="display: none; margin-top: 10px;">
+    <!-- Header Container -->
+    <div id="vsHeader" style="overflow: hidden; background: #f0f0f0; border: 1px solid #ccc; border-bottom: none;">
+        <table style="table-layout: fixed; border-collapse: collapse; width: max-content;">
+            <thead id="vsThead"></thead>
+        </table>
+    </div>
+    <!-- Body Scroll Container -->
+    <div id="vsBody" style="height: 400px; overflow: auto; position: relative; border: 1px solid #ccc;">
+        <!-- Spacer to simulate total height -->
+        <div id="vsSpacer" style="height: 0;"></div>
+        <!-- Content wrapper positioned absolutely -->
+        <div id="vsContent" style="position: absolute; top: 0; left: 0;">
+            <table style="table-layout: fixed; border-collapse: collapse; width: max-content;">
+                <tbody id="vsTbody"></tbody>
+            </table>
+        </div>
+    </div>
+    <!-- Loading Indicator -->
+    <div id="vsLoading" style="display:none; text-align: center; background: #eee; padding: 5px; font-weight: bold;">
+        Loading more rows...
+    </div>
+</div>
 
 
 <script>
+    // Global state for virtual scroll
+    const vsState = {
+        rows: [],
+        columns: [],
+        rowHeight: 30,
+        visibleRows: 20, // 400px / 30px approx 14
+        buffer: 5,
+        currentPage: 1,
+        pageSize: 200,
+        isLoading: false,
+        hasMore: true,
+        currentSql: null,
+        currentDbId: null
+    };
+
     $(document).ready(function() {
+        // Virtual Scroll Listener
+        $("#vsBody").on("scroll", function() {
+            // Sync horizontal scroll
+            $("#vsHeader").scrollLeft($(this).scrollLeft());
+
+            // Check if near bottom for infinite scroll
+            let scrollTop = $(this).scrollTop();
+            let scrollHeight = $(this)[0].scrollHeight;
+            let clientHeight = $(this).height();
+            let threshold = 50; // pixels from bottom
+
+            if (scrollTop + clientHeight >= scrollHeight - threshold) {
+                if (!vsState.isLoading && vsState.hasMore) {
+                    fetchData();
+                }
+            }
+
+            // Trigger render
+            renderVirtualTable();
+        });
+
         // Load tables for the initial selection
         loadTables();
     });
@@ -80,25 +164,178 @@
         if (!dbId) return;
 
         $.get("/api/schema", { dbId: dbId }, function(schema) {
-             if (window.updateEditorSchema) {
-                 window.updateEditorSchema(schema);
-             }
+            if (window.updateEditorSchema) {
+                window.updateEditorSchema(schema);
+            }
         });
     }
 
     function doSql(action) {
         let sql = "";
+        let dbId = $("#dbId").val();
+
         if (action === 'EXEC') {
             if (window.getSmartSql) {
                 sql = window.getSmartSql();
             }
+            // Reset State for new query
+            vsState.currentSql = sql;
+            vsState.currentDbId = dbId;
+            vsState.currentPage = 1;
+            vsState.pageSize = parseInt($("#pageSizeSelect").val()); // User-defined page size
+            vsState.rows = [];
+            vsState.hasMore = true;
+            vsState.isLoading = false;
+
+            $("#virtualScrollArea").hide();
+            $("#msgArea").text("Executing...");
+
+            fetchData();
         } else {
-            sql = action;
+            // Commit/Rollback - no pagination needed
+            $.post("/api/execute", { dbId: dbId, sql: action }, function(res) {
+                renderResult(res);
+            });
         }
+    }
+
+    function fetchData() {
+        if (vsState.isLoading) return;
+        vsState.isLoading = true;
+        $("#vsLoading").show();
+
+        $.post("/api/execute", {
+            dbId: vsState.currentDbId,
+            sql: vsState.currentSql,
+            page: vsState.currentPage,
+            size: vsState.pageSize
+        }, function(res) {
+            handleData(res);
+        }).always(function() {
+            vsState.isLoading = false;
+            $("#vsLoading").hide();
+        });
+    }
+
+    function handleData(res) {
+        let color = res.status === 'SUCCESS' ? 'green' : (res.status === 'PENDING' ? 'orange' : 'red');
+        $("#msgArea").html(`<b style='color:${color}'>[${res.status}] ${res.message}</b>`);
+
+        if (res.txStatus) {
+            $("#txStatus").text(res.txStatus);
+            $("#txStatus").css('color', res.txStatus === 'UNCOMMIT' ? 'red' : 'blue');
+        }
+
+        if (res.status !== 'SUCCESS') {
+            return;
+        }
+
+        if (res.columns && res.columns.length > 0) {
+            // If first page, initialize headers
+            if (vsState.currentPage === 1) {
+                vsState.columns = res.columns;
+                vsState.rows = res.rows;
+
+                // Render Header
+                let headHtml = "<tr>";
+                headHtml += `<th class="vs-cell vs-cell-index">#</th>`;
+                vsState.columns.forEach(col => {
+                    headHtml += `<th class="vs-cell" title="${col}">${col}</th>`;
+                });
+                headHtml += "</tr>";
+                $("#vsThead").html(headHtml);
+
+                $("#virtualScrollArea").show();
+                $("#vsBody").scrollTop(0);
+                $("#vsBody").scrollLeft(0);
+            } else {
+                // Append rows
+                vsState.rows.push(...res.rows);
+            }
+
+            // Update hasMore
+            if (res.rows.length < vsState.pageSize) {
+                vsState.hasMore = false;
+            } else {
+                vsState.hasMore = true;
+            }
+
+            // Increment page
+            vsState.currentPage++;
+
+            // Update Spacer Height
+            let totalHeight = vsState.rows.length * vsState.rowHeight;
+            $("#vsSpacer").css("height", totalHeight + "px");
+
+            // Render
+            renderVirtualTable();
+        } else {
+            // No columns returned (e.g. UPDATE/DELETE)
+            if (vsState.currentPage === 1) {
+                $("#virtualScrollArea").hide();
+            }
+        }
+    }
+
+    function doAnalyze() {
+        let sql = "";
+        if (window.getSmartSql) {
+            sql = window.getSmartSql();
+        } else if ($("#sql").length) {
+            sql = $("#sql").val();
+        }
+
         let dbId = $("#dbId").val();
 
-        $.post("/api/execute", { dbId: dbId, sql: sql }, function(res) {
-            renderResult(res);
+        // Reset UI
+        $("#dba-loading").show();
+        $("#dba-report-area").hide();
+        $("#dba-error").hide();
+
+        $.ajax({
+            url: "/api/sql/analyze",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({ dbId: parseInt(dbId), sql: sql }),
+            success: function(report) {
+                $("#dba-loading").hide();
+                $("#dba-report-area").show();
+
+                // Suggestions
+                $("#dba-suggestions").empty();
+                if (report.suggestions && report.suggestions.length > 0) {
+                    report.suggestions.forEach(s => {
+                        $("#dba-suggestions").append($("<li>").text(s));
+                    });
+                } else {
+                    $("#dba-suggestions").append("<li>No suggestions.</li>");
+                }
+
+                // Plan
+                $("#dba-plan").text(report.planContent || "No plan content.");
+
+                // Metrics (Table)
+                let metricsHtml = "";
+                if (report.executionTimeMs > 0) {
+                    metricsHtml += "<table border='1' style='width: 100%; border-collapse: collapse; margin-bottom: 10px;'>";
+                    metricsHtml += "<tr><th style='background-color: #f2f2f2; width: 200px;'>Metric</th><th>Value</th></tr>";
+                    metricsHtml += `<tr><td>Estimated Execution Time</td><td>${report.executionTimeMs} ms</td></tr>`;
+                    metricsHtml += "</table>";
+                }
+                $("#dba-metrics").html(metricsHtml);
+            },
+            error: function(xhr) {
+                $("#dba-loading").hide();
+                let msg = "Unknown error";
+                try {
+                    // Try to parse JSON error from Spring Boot
+                    let errJson = JSON.parse(xhr.responseText);
+                    msg = errJson.message || errJson.error || xhr.statusText;
+                } catch (e) {
+                    msg = xhr.responseText || xhr.statusText;
+                }
+                $("#dba-error").text("🦁 Analyze Error: " + msg).show();
+            }
         });
     }
 
@@ -138,31 +375,53 @@
     }
 
     function renderResult(res) {
+        // Legacy function for COMMIT/ROLLBACK or simple results
         let color = res.status === 'SUCCESS' ? 'green' : (res.status === 'PENDING' ? 'orange' : 'red');
         $("#msgArea").html(`<b style='color:${color}'>[${res.status}] ${res.message}</b>`);
-        $("#resultTable").empty();
 
         if (res.txStatus) {
             $("#txStatus").text(res.txStatus);
-            if (res.txStatus === 'UNCOMMIT') {
-                $("#txStatus").css('color', 'red');
-            } else {
-                $("#txStatus").css('color', 'blue');
-            }
+            $("#txStatus").css('color', res.txStatus === 'UNCOMMIT' ? 'red' : 'blue');
         }
 
-        if (res.columns && res.columns.length > 0) {
-            let html = "<table border='1'><thead><tr>";
-            res.columns.forEach(col => html += `<th>${col}</th>`);
-            html += "</tr></thead><tbody>";
-            res.rows.forEach(row => {
-                html += "<tr>";
-                res.columns.forEach(col => html += `<td>${row[col]}</td>`);
-                html += "</tr>";
+        $("#virtualScrollArea").hide();
+    }
+
+    function renderVirtualTable() {
+        let scrollTop = $("#vsBody").scrollTop();
+        let startIndex = Math.floor(scrollTop / vsState.rowHeight);
+        let endIndex = startIndex + vsState.visibleRows + vsState.buffer;
+
+        // Boundary checks
+        if (startIndex < 0) startIndex = 0;
+        if (endIndex > vsState.rows.length) endIndex = vsState.rows.length;
+
+        // Slice rows
+        let visibleData = vsState.rows.slice(startIndex, endIndex);
+
+        // Render Rows
+        let bodyHtml = "";
+        visibleData.forEach((row, i) => {
+
+            let rowNum = startIndex + i + 1;
+
+            bodyHtml += `<tr style="height: ${vsState.rowHeight}px;">`;
+
+            bodyHtml += `<td class="vs-cell vs-cell-index">${rowNum}</td>`;
+
+            vsState.columns.forEach(col => {
+                let val = row[col];
+                if (val === null || val === undefined) val = "-";
+                bodyHtml += `<td class="vs-cell" title="${val}">${val}</td>`;
             });
-            html += "</tbody></table>";
-            $("#resultTable").html(html);
-        }
+            bodyHtml += "</tr>";
+        });
+
+        $("#vsTbody").html(bodyHtml);
+
+        // Position Content
+        // We position the content at the top of the start index
+        $("#vsContent").css("transform", `translateY(${(startIndex * vsState.rowHeight)}px)`);
     }
 </script>
 </body>
