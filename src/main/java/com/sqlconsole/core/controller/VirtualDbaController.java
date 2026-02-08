@@ -22,6 +22,13 @@ public class VirtualDbaController {
   private final VirtualDbaService virtualDbaService;
   private final DbConfigService dbConfigService;
 
+  /**
+   * Serves the Virtual DBA page.
+   *
+   * @param model the UI model
+   * @param auth the authentication object
+   * @return the view name "vdba"
+   */
   @GetMapping("/vdba")
   public String vdbaPage(Model model, Authentication auth) {
     model.addAttribute("dbs", dbConfigService.getAllConfigs());
@@ -29,6 +36,14 @@ public class VirtualDbaController {
     return "vdba";
   }
 
+  /**
+   * Diagnoses a SQL query and returns a report.
+   *
+   * @param dbId the database ID
+   * @param sql the SQL query to analyze
+   * @return a completable future containing the Virtual DBA report
+   * @throws AccessDeniedException if the user does not have access to the database
+   */
   @PostMapping("/api/vdba/diagnose")
   @ResponseBody
   public CompletableFuture<VirtualDbaReport> diagnose(

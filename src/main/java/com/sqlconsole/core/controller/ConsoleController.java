@@ -25,11 +25,23 @@ public class ConsoleController {
   @Autowired private SqlExecutorService sqlService;
   @Autowired private UserRepository userRepo;
 
+  /**
+   * 根路徑重導向至 Console 頁面
+   *
+   * @return 重導向路徑
+   */
   @GetMapping("/")
   public String index() {
     return "redirect:/console";
   }
 
+  /**
+   * 提供 SQL Console 主頁面
+   *
+   * @param model UI 模型
+   * @param auth 認證資訊
+   * @return 視圖名稱 "console"
+   */
   @GetMapping("/console")
   public String consolePage(Model model, Authentication auth) {
     model.addAttribute("dbs", dbConfigService.getAllConfigs());
@@ -44,6 +56,17 @@ public class ConsoleController {
     return "console";
   }
 
+  /**
+   * 執行 SQL 指令
+   *
+   * @param dbId 資料庫 ID
+   * @param sql SQL 指令
+   * @param page 頁碼 (預設 1)
+   * @param size 每頁筆數 (預設 100)
+   * @param auth 認證資訊
+   * @param session HTTP Session
+   * @return SQL 執行結果
+   */
   @PostMapping("/api/execute")
   @ResponseBody
   public SqlResult execute(
@@ -57,6 +80,14 @@ public class ConsoleController {
     return sqlService.processRequest(dbId, sql, auth.getName(), role, session, page, size);
   }
 
+  /**
+   * 審核並執行工單
+   *
+   * @param taskId 工單 ID
+   * @param auth 認證資訊
+   * @param session HTTP Session
+   * @return 執行結果
+   */
   @PostMapping("/api/approve")
   @ResponseBody
   public SqlResult approve(@RequestParam Long taskId, Authentication auth, HttpSession session) {
@@ -68,6 +99,14 @@ public class ConsoleController {
     return auditService.executeApprovedTask(taskId, auth.getName());
   }
 
+  /**
+   * 獲取資料庫表格綱要
+   *
+   * @param dbId 資料庫 ID
+   * @param session HTTP Session
+   * @param auth 認證資訊
+   * @return 表格與欄位的對應 Map
+   */
   @GetMapping("/api/schema")
   @ResponseBody
   public Map<String, List<String>> getSchema(

@@ -27,6 +27,13 @@ public class MariaDbDbaProvider implements VirtualDbaProvider {
     return "MARIADB";
   }
 
+  /**
+   * Generates an execution plan for MariaDB.
+   *
+   * @param conn the database connection
+   * @param sql the SQL query
+   * @return the execution plan
+   */
   @Override
   public ExecutionPlan explain(Connection conn, String sql) {
     String explainSql = "EXPLAIN FORMAT=JSON " + sql;
@@ -46,6 +53,14 @@ public class MariaDbDbaProvider implements VirtualDbaProvider {
     }
   }
 
+  /**
+   * Generates optimization suggestions for MariaDB.
+   *
+   * @param conn the database connection
+   * @param sql the SQL query
+   * @param plan the execution plan
+   * @return a list of suggestions
+   */
   @Override
   public List<DbaSuggestion> getSuggestions(
       Connection conn, String sql, UnifiedExecutionNode plan) {
@@ -59,6 +74,12 @@ public class MariaDbDbaProvider implements VirtualDbaProvider {
     return false;
   }
 
+  /**
+   * Normalizes the MariaDB JSON execution plan.
+   *
+   * @param rawJson the raw JSON plan
+   * @return the normalized execution node
+   */
   @Override
   public UnifiedExecutionNode normalize(String rawJson) {
     try {
@@ -70,6 +91,12 @@ public class MariaDbDbaProvider implements VirtualDbaProvider {
     return null;
   }
 
+  /**
+   * Recursively converts a MariaDB JSON node to a UnifiedExecutionNode.
+   *
+   * @param node the JSON node
+   * @return the unified execution node
+   */
   private UnifiedExecutionNode convertMariaNode(JsonNode node) {
     if (node == null || node.isMissingNode()) return null;
 
@@ -104,7 +131,6 @@ public class MariaDbDbaProvider implements VirtualDbaProvider {
       cost = node.get("cost_info").path("query_cost").asDouble(0.0);
     }
 
-    return new UnifiedExecutionNode(
-        operation, cost, rows, 0.0, children, Collections.emptyMap());
+    return new UnifiedExecutionNode(operation, cost, rows, 0.0, children, Collections.emptyMap());
   }
 }

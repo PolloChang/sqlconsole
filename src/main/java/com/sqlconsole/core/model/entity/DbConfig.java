@@ -9,6 +9,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+/** Represents a database configuration. */
 @Entity
 @Table(name = "db_configs")
 @Data
@@ -38,6 +39,15 @@ public class DbConfig {
   @EqualsAndHashCode.Exclude
   private Set<User> authorizedUsers = new java.util.HashSet<>();
 
+  /**
+   * Constructs a new DbConfig.
+   *
+   * @param name the configuration name
+   * @param dbType the database type
+   * @param jdbcUrl the JDBC URL
+   * @param dbUser the database user
+   * @param dbPassword the database password
+   */
   public DbConfig(String name, DbType dbType, String jdbcUrl, String dbUser, String dbPassword) {
     this.name = name;
     this.dbType = dbType;

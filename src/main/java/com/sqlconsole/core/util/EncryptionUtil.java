@@ -32,6 +32,7 @@ public class EncryptionUtil {
    * @param plainText 明文
    * @param masterPassword 系統主密鑰 (建議從環境變數讀取)
    * @return Base64 編碼的加密字串 (包含 Salt + IV + CipherText)
+   * @throws Exception 加密過程中發生的錯誤
    */
   public static String encrypt(String plainText, String masterPassword) throws Exception {
     // 1. 生成隨機 Salt
@@ -66,6 +67,7 @@ public class EncryptionUtil {
    * @param encryptedBase64 加密後的 Base64 字串
    * @param masterPassword 系統主密鑰
    * @return 解密後的明文
+   * @throws Exception 解密過程中發生的錯誤
    */
   public static String decrypt(String encryptedBase64, String masterPassword) throws Exception {
     byte[] decode = Base64.getDecoder().decode(encryptedBase64);
@@ -95,7 +97,15 @@ public class EncryptionUtil {
     return new String(plainText, StandardCharsets.UTF_8);
   }
 
-  /** 使用 PBKDF2 與 Salt 衍生高強度金鑰 */
+  /**
+   * 使用 PBKDF2 與 Salt 衍生高強度金鑰
+   *
+   * @param password 密碼
+   * @param salt 鹽值
+   * @return 衍生後的金鑰
+   * @throws NoSuchAlgorithmException 若指定的算法不存在
+   * @throws InvalidKeySpecException 若金鑰規格無效
+   */
   private static SecretKey deriveKey(String password, byte[] salt)
       throws NoSuchAlgorithmException, InvalidKeySpecException {
     SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");

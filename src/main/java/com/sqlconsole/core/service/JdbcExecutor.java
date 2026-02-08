@@ -13,6 +13,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class JdbcExecutor {
 
+  /**
+   * 串流式查詢資料庫 (適用於大數據量匯出)
+   *
+   * @param conn 資料庫連線
+   * @param sql SQL 指令
+   * @param consumer ResultSet 消費者
+   * @throws SQLException 若 SQL 執行失敗
+   */
   public void streamQuery(Connection conn, String sql, Consumer<ResultSet> consumer)
       throws SQLException {
     String executableSql = sql.trim();
@@ -28,14 +36,41 @@ public class JdbcExecutor {
     }
   }
 
+  /**
+   * 執行 SQL 指令 (無限制)
+   *
+   * @param conn 資料庫連線
+   * @param sql SQL 指令
+   * @return 執行結果
+   * @throws SQLException 若 SQL 執行失敗
+   */
   public SqlResult executeSql(Connection conn, String sql) throws SQLException {
     return executeSql(conn, sql, 0, 0);
   }
 
+  /**
+   * 執行 SQL 指令 (限制回傳筆數)
+   *
+   * @param conn 資料庫連線
+   * @param sql SQL 指令
+   * @param maxRows 最大回傳筆數
+   * @return 執行結果
+   * @throws SQLException 若 SQL 執行失敗
+   */
   public SqlResult executeSql(Connection conn, String sql, int maxRows) throws SQLException {
     return executeSql(conn, sql, maxRows, 0);
   }
 
+  /**
+   * 執行 SQL 指令 (分頁)
+   *
+   * @param conn 資料庫連線
+   * @param sql SQL 指令
+   * @param limit 每頁筆數
+   * @param offset 偏移量
+   * @return 執行結果
+   * @throws SQLException 若 SQL 執行失敗
+   */
   public SqlResult executeSql(Connection conn, String sql, int limit, int offset)
       throws SQLException {
     String status = "SUCCESS";

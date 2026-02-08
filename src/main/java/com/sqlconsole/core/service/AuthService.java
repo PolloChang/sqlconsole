@@ -12,10 +12,22 @@ public class AuthService implements UserDetailsService {
 
   private final UserRepository userRepo;
 
+  /**
+   * Constructs an AuthService.
+   *
+   * @param userRepo the user repository
+   */
   public AuthService(UserRepository userRepo) {
     this.userRepo = userRepo;
   }
 
+  /**
+   * Loads a user by username for Spring Security.
+   *
+   * @param username the username to load
+   * @return the user details
+   * @throws UsernameNotFoundException if the user is not found
+   */
   @Override
   public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
     var user =

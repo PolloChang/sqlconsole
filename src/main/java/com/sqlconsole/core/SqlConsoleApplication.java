@@ -14,10 +14,23 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @SpringBootApplication
 public class SqlConsoleApplication {
 
+  /**
+   * The entry point of the SQL Console application.
+   *
+   * @param args the command line arguments
+   */
   public static void main(String[] args) {
     SpringApplication.run(SqlConsoleApplication.class, args);
   }
 
+  /**
+   * Initializes default users if the database is empty.
+   *
+   * @param userRepo the user repository
+   * @param dbConfigService the database configuration service
+   * @param encoder the password encoder
+   * @return the command line runner to execute initialization
+   */
   @Bean
   CommandLineRunner init(
       UserRepository userRepo, DbConfigService dbConfigService, PasswordEncoder encoder) {

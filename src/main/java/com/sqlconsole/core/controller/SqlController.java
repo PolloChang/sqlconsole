@@ -28,6 +28,14 @@ public class SqlController {
   private final DbSessionService dbSessionService;
   private final DbConfigRepository dbConfigRepository;
 
+  /**
+   * Analyzes a SQL query and returns an execution plan.
+   *
+   * @param request the analysis request containing DB ID and SQL
+   * @param session the HTTP session
+   * @return the DBA report containing the execution plan
+   * @throws SQLException if a database error occurs
+   */
   @PostMapping("/analyze")
   public DbaReport analyze(@RequestBody AnalyzeRequest request, HttpSession session)
       throws SQLException {

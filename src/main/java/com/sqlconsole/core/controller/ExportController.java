@@ -20,12 +20,25 @@ public class ExportController {
 
   private final ExportService exportService;
 
+  /**
+   * Submits a new export job.
+   *
+   * @param request the analysis request
+   * @param principal the authenticated user
+   * @return the job ID
+   */
   @PostMapping("/execute")
   public ResponseEntity<String> execute(@RequestBody AnalyzeRequest request, Principal principal) {
     String jobId = exportService.submitJob(request.dbId(), request.sql(), principal.getName());
     return ResponseEntity.ok(jobId);
   }
 
+  /**
+   * Retrieves the status of an export job.
+   *
+   * @param jobId the job ID
+   * @return the job status or 404 if not found
+   */
   @GetMapping("/status/{jobId}")
   public ResponseEntity<ExportJobStatus> getStatus(@PathVariable String jobId) {
     ExportJobStatus status = exportService.getStatus(jobId);
@@ -35,6 +48,12 @@ public class ExportController {
     return ResponseEntity.ok(status);
   }
 
+  /**
+   * Downloads the exported file.
+   *
+   * @param jobId the job ID
+   * @return the file resource or error status
+   */
   @GetMapping("/download/{jobId}")
   public ResponseEntity<Resource> download(@PathVariable String jobId) {
     ExportJobStatus job = exportService.getStatus(jobId);

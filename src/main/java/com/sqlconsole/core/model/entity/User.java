@@ -8,6 +8,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+/** Represents a user in the system. */
 @Entity
 @Table(name = "sys_users")
 @Data
@@ -15,8 +16,13 @@ import lombok.ToString;
 @AllArgsConstructor
 public class User {
 
+  /** Role for system administrators. */
   public static final String ROLE_ADMIN = "ROLE_ADMIN";
+
+  /** Role for auditors. */
   public static final String ROLE_AUDITOR = "ROLE_AUDITOR";
+
+  /** Role for standard users. */
   public static final String ROLE_USER = "ROLE_USER";
 
   @Id
@@ -41,8 +47,13 @@ public class User {
   @EqualsAndHashCode.Exclude
   private Set<DbConfig> accessibleDatabases = new java.util.HashSet<>();
 
-  // Constructors, Getters, Setters
-
+  /**
+   * Constructs a new User.
+   *
+   * @param username the username
+   * @param password the encoded password
+   * @param role the user role
+   */
   public User(String username, String password, String role) {
     this.username = username;
     this.password = password;

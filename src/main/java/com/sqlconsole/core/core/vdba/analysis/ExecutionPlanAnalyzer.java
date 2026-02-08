@@ -12,6 +12,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class ExecutionPlanAnalyzer {
 
+  /**
+   * Analyzes the execution plan tree to identify bottlenecks and generate suggestions.
+   *
+   * @param root the root node of the unified execution plan
+   * @return the analysis result containing the enriched plan and suggestions
+   */
   public AnalysisResult analyze(UnifiedExecutionNode root) {
     if (root == null) {
       return new AnalysisResult(null, List.of());
@@ -29,6 +35,17 @@ public class ExecutionPlanAnalyzer {
     return new AnalysisResult(enrichedRoot, suggestions);
   }
 
+  /**
+   * Recursively enriches the execution plan nodes with analysis tags.
+   *
+   * @param node the current node
+   * @param totalCost the total cost of the plan
+   * @param totalTime the total execution time
+   * @param suggestions the list to collect suggestions
+   * @param rootCost the cost of the root node
+   * @param rootTime the time of the root node
+   * @return the enriched node
+   */
   private UnifiedExecutionNode enrichNode(
       UnifiedExecutionNode node,
       double totalCost,
@@ -58,16 +75,14 @@ public class ExecutionPlanAnalyzer {
       suggestions.add(
           new DbaSuggestion(
               "WARN",
-              "Missing Index detected on: "
-                  + node.operation()
-                  + ". Rows scanned: "
-                  + node.rows()));
+              "Missing Index detected on: " + node.operation() + ". Rows scanned: " + node.rows()));
     }
 
     // Heuristic: Stale Statistics
     // If Actual Time is significantly higher than estimated Cost (normalized roughly)
     // Note: Cost units are arbitrary, Time is ms. Comparison is tricky.
-    // Instead, look for huge disparity in row estimation vs actual (if actual rows existed, which we
+    // Instead, look for huge disparity in row estimation vs actual (if actual rows existed, which
+    // we
     // assume might be in rows for now or future)
     // For now, let's use the rule: If actualTime is high but cost is low?
     // Requirement says: "If actualTime is significantly higher than estimated cost".
@@ -96,11 +111,6 @@ public class ExecutionPlanAnalyzer {
     }
 
     return new UnifiedExecutionNode(
-        node.operation(),
-        node.cost(),
-        node.rows(),
-        node.actualTime(),
-        enrichedChildren,
-        tags);
+        node.operation(), node.cost(), node.rows(), node.actualTime(), enrichedChildren, tags);
   }
 }

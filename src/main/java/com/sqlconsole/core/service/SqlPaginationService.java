@@ -17,6 +17,16 @@ import org.springframework.stereotype.Service;
 @Service
 public class SqlPaginationService {
 
+  /**
+   * Rewrites the original SQL query to apply pagination based on the database type.
+   *
+   * @param originalSql the original SQL query
+   * @param dbType the database type
+   * @param page the page number (1-based)
+   * @param size the page size
+   * @return the rewritten SQL query with pagination, or the original SQL if rewriting fails or is
+   *     not supported
+   */
   public String applyPagination(String originalSql, DbType dbType, int page, int size) {
     try {
       Statement statement = CCJSqlParserUtil.parse(originalSql);

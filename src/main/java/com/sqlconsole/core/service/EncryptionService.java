@@ -10,6 +10,12 @@ public class EncryptionService {
   @Value("${app.security.master-key}")
   private String masterKey;
 
+  /**
+   * Encrypts the given plain text.
+   *
+   * @param plainText the text to encrypt
+   * @return the encrypted text, or null/empty if input is null/empty
+   */
   public String encrypt(String plainText) {
     if (plainText == null || plainText.isEmpty()) {
       return plainText;
@@ -21,6 +27,12 @@ public class EncryptionService {
     }
   }
 
+  /**
+   * Decrypts the given encrypted text.
+   *
+   * @param encryptedText the text to decrypt
+   * @return the decrypted text, or null/empty if input is null/empty
+   */
   public String decrypt(String encryptedText) {
     if (encryptedText == null || encryptedText.isEmpty()) {
       return encryptedText;

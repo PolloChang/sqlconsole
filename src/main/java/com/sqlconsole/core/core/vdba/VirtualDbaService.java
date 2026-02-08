@@ -29,6 +29,7 @@ public class VirtualDbaService {
   private final ExecutionPlanAnalyzer analyzer;
   private Map<String, VirtualDbaProvider> providerMap;
 
+  /** Initializes the provider map by mapping provider types to their instances. */
   @PostConstruct
   public void init() {
     providerMap =
@@ -85,14 +86,14 @@ public class VirtualDbaService {
 
         // 3. Get Provider Specific Suggestions (Index Advisor)
         List<DbaSuggestion> providerSuggestions =
-            provider.getSuggestions(conn, sql, enrichedPlan != null ? enrichedPlan : normalizedPlan);
+            provider.getSuggestions(
+                conn, sql, enrichedPlan != null ? enrichedPlan : normalizedPlan);
 
         // 4. Combine Suggestions
         providerSuggestions.addAll(heuristicSuggestions);
 
         return CompletableFuture.completedFuture(
-            new VirtualDbaReport(
-                plan, providerSuggestions, enrichedPlan, Collections.emptyMap()));
+            new VirtualDbaReport(plan, providerSuggestions, enrichedPlan, Collections.emptyMap()));
       } finally {
         conn.rollback();
       }

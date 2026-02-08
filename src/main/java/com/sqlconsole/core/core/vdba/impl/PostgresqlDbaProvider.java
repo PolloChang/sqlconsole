@@ -29,6 +29,13 @@ public class PostgresqlDbaProvider implements VirtualDbaProvider {
     return "POSTGRESQL";
   }
 
+  /**
+   * Generates an execution plan for PostgreSQL.
+   *
+   * @param conn the database connection
+   * @param sql the SQL query
+   * @return the execution plan
+   */
   @Override
   public ExecutionPlan explain(Connection conn, String sql) {
     // Note: EXPLAIN ANALYZE executes the query!
@@ -51,6 +58,14 @@ public class PostgresqlDbaProvider implements VirtualDbaProvider {
     }
   }
 
+  /**
+   * Generates optimization suggestions for PostgreSQL.
+   *
+   * @param conn the database connection
+   * @param sql the SQL query
+   * @param plan the execution plan
+   * @return a list of suggestions
+   */
   @Override
   public List<DbaSuggestion> getSuggestions(
       Connection conn, String sql, UnifiedExecutionNode plan) {
@@ -67,6 +82,12 @@ public class PostgresqlDbaProvider implements VirtualDbaProvider {
     return suggestions;
   }
 
+  /**
+   * Recursively finds sequential scans in the execution plan and adds index suggestions.
+   *
+   * @param node the execution plan node
+   * @param suggestions the list of suggestions
+   */
   private void findSeqScans(UnifiedExecutionNode node, List<DbaSuggestion> suggestions) {
     if (node == null) return;
 
@@ -99,6 +120,12 @@ public class PostgresqlDbaProvider implements VirtualDbaProvider {
     return false;
   }
 
+  /**
+   * Normalizes the PostgreSQL JSON execution plan.
+   *
+   * @param rawJson the raw JSON plan
+   * @return the normalized execution node
+   */
   @Override
   public UnifiedExecutionNode normalize(String rawJson) {
     try {
@@ -113,6 +140,12 @@ public class PostgresqlDbaProvider implements VirtualDbaProvider {
     return null;
   }
 
+  /**
+   * Recursively converts a PostgreSQL JSON node to a UnifiedExecutionNode.
+   *
+   * @param pgNode the JSON node
+   * @return the unified execution node
+   */
   private UnifiedExecutionNode convertPgNode(JsonNode pgNode) {
     if (pgNode == null) return null;
 
@@ -137,6 +170,7 @@ public class PostgresqlDbaProvider implements VirtualDbaProvider {
       }
     }
 
-    return new UnifiedExecutionNode(operation, cost, rows, actualTime, children, Collections.emptyMap());
+    return new UnifiedExecutionNode(
+        operation, cost, rows, actualTime, children, Collections.emptyMap());
   }
 }

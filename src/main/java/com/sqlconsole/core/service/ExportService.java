@@ -32,6 +32,14 @@ public class ExportService {
 
   @Autowired @Lazy private ExportService self;
 
+  /**
+   * Submits a new export job.
+   *
+   * @param dbId the database ID
+   * @param sql the SQL query to export
+   * @param username the username initiating the export
+   * @return the job ID
+   */
   public String submitJob(Long dbId, String sql, String username) {
     String jobId = UUID.randomUUID().toString();
     ExportJobStatus job =
@@ -49,6 +57,14 @@ public class ExportService {
     return jobId;
   }
 
+  /**
+   * Executes the export job in the background using virtual threads.
+   *
+   * @param jobId the job ID
+   * @param dbId the database ID
+   * @param sql the SQL query
+   * @param username the username
+   */
   @Async("exportTaskExecutor")
   public void executeBackgroundExport(String jobId, Long dbId, String sql, String username) {
     ExportJobStatus job = jobStore.get(jobId);
@@ -139,6 +155,7 @@ public class ExportService {
     }
   }
 
+  /** Cleans up old export jobs and files periodically. */
   @Scheduled(fixedRate = 3600000) // Every hour
   public void cleanUpOldJobs() {
     long cutoff = System.currentTimeMillis() - 86400000; // 24 hours
@@ -160,10 +177,22 @@ public class ExportService {
             });
   }
 
+  /**
+   * Retrieves the status of an export job.
+   *
+   * @param jobId the job ID
+   * @return the job status
+   */
   public ExportJobStatus getStatus(String jobId) {
     return jobStore.get(jobId);
   }
 
+  /**
+   * Truncates SQL string for logging.
+   *
+   * @param sql the SQL string
+   * @return the truncated string
+   */
   private String truncateSql(String sql) {
     if (sql == null) return "";
     return sql.length() > 100 ? sql.substring(0, 100) + "..." : sql;

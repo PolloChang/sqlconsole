@@ -20,6 +20,12 @@ public class UserController {
   private final UserService userService;
   private final DbConfigService dbConfigService;
 
+  /**
+   * Returns the user management view.
+   *
+   * @param model the UI model
+   * @return the model and view for users page
+   */
   @GetMapping("/admin/users")
   public ModelAndView viewUsers(Model model) {
     ModelAndView mav = new ModelAndView("users");
@@ -27,11 +33,22 @@ public class UserController {
     return mav;
   }
 
+  /**
+   * Retrieves all users.
+   *
+   * @return the list of users
+   */
   @GetMapping("/api/users")
   public List<User> getAllUsers() {
     return userService.getAllUsers();
   }
 
+  /**
+   * Creates a new user.
+   *
+   * @param user the user details
+   * @return the created user or bad request if username exists
+   */
   @PostMapping("/api/users")
   public ResponseEntity<User> createUser(@RequestBody User user) {
     if (userService.existsByUsername(user.getUsername())) {
@@ -40,6 +57,13 @@ public class UserController {
     return ResponseEntity.ok(userService.createUser(user));
   }
 
+  /**
+   * Updates an existing user.
+   *
+   * @param id the user ID
+   * @param user the updated user details
+   * @return the updated user or bad request on failure
+   */
   @PutMapping("/api/users/{id}")
   public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User user) {
     try {
@@ -49,17 +73,36 @@ public class UserController {
     }
   }
 
+  /**
+   * Retrieves a user by ID.
+   *
+   * @param id the user ID
+   * @return the user details
+   */
   @GetMapping("/api/users/{id}")
   public ResponseEntity<User> getUser(@PathVariable Long id) {
     return ResponseEntity.ok(userService.getUserById(id));
   }
 
+  /**
+   * Deletes a user by ID.
+   *
+   * @param id the user ID
+   * @return response entity
+   */
   @DeleteMapping("/api/users/{id}")
   public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
     userService.deleteUser(id);
     return ResponseEntity.ok().build();
   }
 
+  /**
+   * Assigns accessible databases to a user.
+   *
+   * @param id the user ID
+   * @param dbIds the set of database IDs
+   * @return response entity
+   */
   @PostMapping("/api/users/{id}/databases")
   public ResponseEntity<Void> assignDatabases(@PathVariable Long id, @RequestBody Set<Long> dbIds) {
     userService.assignDatabases(id, dbIds);

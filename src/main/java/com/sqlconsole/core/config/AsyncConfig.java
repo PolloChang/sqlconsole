@@ -13,6 +13,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class AsyncConfig {
 
+  /**
+   * Creates a task executor for export tasks using virtual threads.
+   *
+   * @return the task executor
+   */
   @Bean(name = "exportTaskExecutor")
   public TaskExecutor exportTaskExecutor() {
     return new TaskExecutorAdapter(Executors.newVirtualThreadPerTaskExecutor());

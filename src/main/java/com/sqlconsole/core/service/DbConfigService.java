@@ -28,6 +28,11 @@ public class DbConfigService {
   @Autowired private UserRepository userRepository;
   @Autowired private EncryptionService encryptionService;
 
+  /**
+   * Retrieves all database configurations accessible to the current user.
+   *
+   * @return the list of database configurations
+   */
   @Transactional(readOnly = true)
   public List<DbConfig> getAllConfigs() {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -71,12 +76,24 @@ public class DbConfigService {
         .toList();
   }
 
+  /**
+   * Retrieves a database configuration by ID.
+   *
+   * @param id the configuration ID
+   * @return the database configuration
+   */
   public DbConfig getConfigById(Long id) {
     return dbConfigRepository
         .findById(id)
         .orElseThrow(() -> new RuntimeException("Config not found: " + id));
   }
 
+  /**
+   * Saves or updates a database configuration.
+   *
+   * @param config the configuration to save
+   * @return the saved configuration
+   */
   @Transactional
   public DbConfig saveConfig(DbConfig config) {
     if (config.getId() != null) {
@@ -114,12 +131,23 @@ public class DbConfigService {
     }
   }
 
+  /**
+   * Deletes a database configuration by ID.
+   *
+   * @param id the configuration ID
+   */
   @Transactional
   public void deleteConfig(Long id) {
     dbConfigRepository.deleteById(id);
   }
 
-  /** Creates a raw JDBC connection for the given config. Decrypts credentials before connecting. */
+  /**
+   * Creates a raw JDBC connection for the given config. Decrypts credentials before connecting.
+   *
+   * @param config the database configuration
+   * @return the JDBC connection
+   * @throws SQLException if a database access error occurs
+   */
   public Connection createConnection(DbConfig config) throws SQLException {
     String decryptedUser = encryptionService.decrypt(config.getDbUser());
     String decryptedPassword = encryptionService.decrypt(config.getDbPassword());
@@ -131,6 +159,13 @@ public class DbConfigService {
   /**
    * Helper to create connection with plain text credentials. Handles Oracle roles (e.g. "sys as
    * sysdba").
+   *
+   * @param dbType the database type
+   * @param url the JDBC URL
+   * @param user the database user
+   * @param password the database password
+   * @return the JDBC connection
+   * @throws SQLException if a database access error occurs
    */
   public Connection createConnection(DbType dbType, String url, String user, String password)
       throws SQLException {
@@ -159,7 +194,15 @@ public class DbConfigService {
     return DriverManager.getConnection(url, props);
   }
 
-  /** Tests a connection using provided (plain text) parameters. */
+  /**
+   * Tests a connection using provided (plain text) parameters.
+   *
+   * @param dbType the database type
+   * @param url the JDBC URL
+   * @param user the database user
+   * @param password the database password
+   * @return "SUCCESS" if successful, or an error message starting with "FAILED"
+   */
   public String testConnection(DbType dbType, String url, String user, String password) {
     try (Connection conn = createConnection(dbType, url, user, password)) {
       return "SUCCESS";

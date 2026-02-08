@@ -52,7 +52,8 @@ class VirtualDbaServiceTest {
     when(analyzer.analyze(normalizedPlan))
         .thenReturn(new AnalysisResult(normalizedPlan, List.of()));
     when(provider.getSuggestions(eq(connection), eq(sql), any(UnifiedExecutionNode.class)))
-        .thenReturn(mock(List.class)); // Return a mock list to avoid modifying immutable list issues if any
+        .thenReturn(
+            mock(List.class)); // Return a mock list to avoid modifying immutable list issues if any
 
     CompletableFuture<VirtualDbaReport> future = service.diagnose(dbId, sql);
     VirtualDbaReport report = future.get();

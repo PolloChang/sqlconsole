@@ -26,7 +26,8 @@ class ExecutionPlanAnalyzerTest {
     UnifiedExecutionNode enrichedRoot = result.enrichedRoot();
 
     assertNotNull(enrichedRoot);
-    assertEquals(2, enrichedRoot.tags().size()); // relativeCost, isBottleneck (maybe) or just relativeCost
+    assertEquals(
+        2, enrichedRoot.tags().size()); // relativeCost, isBottleneck (maybe) or just relativeCost
 
     UnifiedExecutionNode enrichedChild = enrichedRoot.children().get(0);
     assertTrue((Double) enrichedChild.tags().get("relativeCost") > 50.0);

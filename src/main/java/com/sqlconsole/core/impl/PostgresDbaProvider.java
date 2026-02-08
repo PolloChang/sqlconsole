@@ -19,6 +19,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class PostgresDbaProvider implements DbaProvider {
 
+  /**
+   * 獲取 SQL 的執行計畫 (使用 EXPLAIN ANALYZE)
+   *
+   * @param connection 資料庫連線
+   * @param sql 原始 SQL 指令
+   * @return 標準化後的診斷報告
+   */
   @Override
   public DbaReport getExecutionPlan(Connection connection, String sql) {
     StringBuilder plan = new StringBuilder();
@@ -41,12 +48,24 @@ public class PostgresDbaProvider implements DbaProvider {
     }
   }
 
+  /**
+   * 獲取資料庫即時健康指標 (僅提供基礎狀態)
+   *
+   * @param connection 資料庫連線
+   * @return 包含指標名稱與數值的列表
+   */
   @Override
   public List<Map<String, Object>> getLiveDiagnostics(Connection connection) {
     // OS 版本僅提供 pg_stat_activity 的基礎計數
     return List.of(Map.of("Status", "Tier 1: Basic Diagnostics Only"));
   }
 
+  /**
+   * 判定是否支援 PostgreSQL
+   *
+   * @param dbType 資料庫類型標籤
+   * @return true 若為 PostgreSQL
+   */
   @Override
   public boolean supports(String dbType) {
     return "POSTGRESQL".equalsIgnoreCase(dbType);

@@ -21,17 +21,34 @@ public class DbConfigController {
 
   @Autowired private EncryptionService encryptionService;
 
+  /**
+   * Serves the database connections page.
+   *
+   * @param model the UI model
+   * @return the view name "connections"
+   */
   @GetMapping("/connections")
   public String connectionsPage(Model model) {
     return "connections";
   }
 
+  /**
+   * Retrieves all database configurations.
+   *
+   * @return the list of database configurations
+   */
   @GetMapping("/api/connections")
   @ResponseBody
   public List<DbConfig> getConnections() {
     return dbConfigService.getAllConfigs();
   }
 
+  /**
+   * Saves or updates a database configuration.
+   *
+   * @param config the configuration to save
+   * @return the saved configuration (masked) or error message
+   */
   @PostMapping("/api/connections")
   @ResponseBody
   public ResponseEntity<?> saveConnection(@RequestBody DbConfig config) {
@@ -50,6 +67,12 @@ public class DbConfigController {
     }
   }
 
+  /**
+   * Deletes a database configuration by ID.
+   *
+   * @param id the configuration ID
+   * @return success message or error message
+   */
   @DeleteMapping("/api/connections/{id}")
   @ResponseBody
   public ResponseEntity<?> deleteConnection(@PathVariable Long id) {
@@ -61,6 +84,12 @@ public class DbConfigController {
     }
   }
 
+  /**
+   * Tests a database connection.
+   *
+   * @param payload map containing dbType, jdbcUrl, dbUser, dbPassword
+   * @return status and message
+   */
   @PostMapping("/api/connections/test")
   @ResponseBody
   public ResponseEntity<?> testConnection(@RequestBody Map<String, String> payload) {

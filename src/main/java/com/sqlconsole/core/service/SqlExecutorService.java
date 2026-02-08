@@ -45,7 +45,14 @@ public class SqlExecutorService {
   // 自動收集所有 Provider (包含 OS 版與未來 Premium 版)
   private final List<DbaProvider> dbaProviders;
 
-  /** 獲取資料庫執行計畫 (Requirement 13) */
+  /**
+   * 獲取資料庫執行計畫 (Requirement 13)
+   *
+   * @param conn 資料庫連線
+   * @param config 資料庫設定
+   * @param sql SQL 指令
+   * @return DBA 診斷報告
+   */
   public DbaReport getExplainPlan(Connection conn, DbConfig config, String sql) {
     // 根據 DbType 動態尋找適用的 Provider
     Optional<DbaProvider> provider =
@@ -65,6 +72,15 @@ public class SqlExecutorService {
     return new DbaReport("No DBA Provider found for " + config.getDbType(), List.of(), -1);
   }
 
+  /**
+   * 串流式查詢資料庫 (用於匯出大量數據)
+   *
+   * @param dbId 資料庫 ID
+   * @param sql SQL 指令
+   * @param username 使用者名稱
+   * @param role 使用者角色
+   * @param consumer 處理 ResultSet 的 Consumer
+   */
   @Transactional(readOnly = true)
   public void streamQuery(
       Long dbId, String sql, String username, String role, Consumer<ResultSet> consumer) {
@@ -79,6 +95,14 @@ public class SqlExecutorService {
     }
   }
 
+  /**
+   * 驗證使用者是否有權限存取該資料庫
+   *
+   * @param dbId 資料庫 ID
+   * @param username 使用者名稱
+   * @param role 使用者角色
+   * @throws AccessDeniedException 如果權限不足
+   */
   private void validateAccess(Long dbId, String username, String role) {
     if (User.ROLE_ADMIN.equals(role)) {
       return;
@@ -96,6 +120,14 @@ public class SqlExecutorService {
     }
   }
 
+  /**
+   * 獲取資料庫表格綱要 (Schema)
+   *
+   * @param dbId 資料庫 ID
+   * @param session HTTP Session
+   * @param auth 認證資訊
+   * @return 表格與欄位的對應 Map
+   */
   public Map<String, List<String>> getTableSchema(
       Long dbId, HttpSession session, Authentication auth) {
     String role =
@@ -165,8 +197,8 @@ public class SqlExecutorService {
   /**
    * 判斷是否為敏感操作
    *
-   * @param sql
-   * @return
+   * @param sql SQL 指令
+   * @return true 如果是敏感操作 (如 INSERT, UPDATE, DELETE 等)
    */
   private boolean isRestricted(String sql) {
     String upper = sql.trim().toUpperCase();
@@ -180,11 +212,33 @@ public class SqlExecutorService {
         || upper.startsWith("GRANT");
   }
 
+  /**
+   * 處理 SQL 請求 (使用預設分頁)
+   *
+   * @param dbId 資料庫 ID
+   * @param sql SQL 指令
+   * @param username 使用者名稱
+   * @param role 使用者角色
+   * @param session HTTP Session
+   * @return SQL 執行結果
+   */
   public SqlResult processRequest(
       Long dbId, String sql, String username, String role, HttpSession session) {
     return processRequest(dbId, sql, username, role, session, 1, 100);
   }
 
+  /**
+   * 處理 SQL 請求 (指定分頁)
+   *
+   * @param dbId 資料庫 ID
+   * @param sql SQL 指令
+   * @param username 使用者名稱
+   * @param role 使用者角色
+   * @param session HTTP Session
+   * @param page 頁碼
+   * @param size 每頁筆數
+   * @return SQL 執行結果
+   */
   public SqlResult processRequest(
       Long dbId,
       String sql,
@@ -214,12 +268,12 @@ public class SqlExecutorService {
   }
 
   /**
-   * 執行 TCL 指令
+   * 執行 TCL 指令 (COMMIT/ROLLBACK)
    *
-   * @param session
-   * @param config
-   * @param commit
-   * @return
+   * @param session HTTP Session
+   * @param config 資料庫設定
+   * @param commit true 為 Commit, false 為 Rollback
+   * @return 執行結果
    */
   private SqlResult executeTcl(HttpSession session, DbConfig config, boolean commit) {
     try {
@@ -234,9 +288,14 @@ public class SqlExecutorService {
   }
 
   /**
-   * 核心執行邏輯
+   * 核心執行邏輯 (無分頁參數，預設 1, 100)
    *
+   * @param session HTTP Session
+   * @param config 資料庫設定
+   * @param sql SQL 指令
+   * @param executor 執行者
    * @param autoCommitAfterExec 是否在執行成功後自動 Commit (用於審核通過的工單)
+   * @return 執行結果
    */
   public SqlResult executeRawSql(
       HttpSession session,
@@ -247,6 +306,18 @@ public class SqlExecutorService {
     return executeRawSqlWithPagination(session, config, sql, executor, autoCommitAfterExec, 1, 100);
   }
 
+  /**
+   * 核心執行邏輯 (含分頁)
+   *
+   * @param session HTTP Session
+   * @param config 資料庫設定
+   * @param sql SQL 指令
+   * @param executor 執行者
+   * @param autoCommitAfterExec 是否在執行成功後自動 Commit
+   * @param page 頁碼
+   * @param size 每頁筆數
+   * @return 執行結果
+   */
   public SqlResult executeRawSqlWithPagination(
       HttpSession session,
       DbConfig config,
