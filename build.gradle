@@ -164,6 +164,15 @@ tasks.register('integrationTest', Test) {
     }
 }
 
+// 自定義任務：啟動開發環境 (dev profile)
+tasks.register('bootRunDev', JavaExec) {
+    group = 'application'
+    description = 'Runs the Spring Boot application with the dev profile.'
+    mainClass = 'com.sqlconsole.core.SqlConsoleApplication'
+    classpath = sourceSets.main.runtimeClasspath
+    systemProperty 'spring.profiles.active', 'dev'
+}
+
 // 設定報表生成邏輯
 jacocoTestReport {
     // 讓報表同時包含單元測試與整合測試的結果
