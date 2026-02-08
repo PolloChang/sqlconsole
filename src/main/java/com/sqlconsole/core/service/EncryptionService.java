@@ -4,7 +4,11 @@ import com.sqlconsole.core.util.EncryptionUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+
 @Service
+/**
+ * Service for encryption and decryption operations.
+ */
 public class EncryptionService {
 
   @Value("${app.security.master-key}")

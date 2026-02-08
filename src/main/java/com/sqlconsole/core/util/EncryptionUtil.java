@@ -15,8 +15,11 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import lombok.extern.slf4j.Slf4j;
 
-/** 安全加密工具類別 - 採用 AES-256-GCM 演算法 支援 Salt 機制與 PBKDF2 金鑰衍生 */
 @Slf4j
+/**
+ * Utility class for Encryption.
+ * 安全加密工具類別 - 採用 AES-256-GCM 演算法 支援 Salt 機制與 PBKDF2 金鑰衍生
+ */
 public class EncryptionUtil {
 
   private static final String ENCRYPTION_ALGO = "AES/GCM/NoPadding";

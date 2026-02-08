@@ -20,9 +20,20 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
+
 @Service
 @Slf4j
+/**
+ * Service for Database Configuration.
+ */
 public class DbConfigService {
+
+    /**
+     * Default constructor for DbConfigService.
+     */
+    public DbConfigService() {
+    }
 
   @Autowired private DbConfigRepository dbConfigRepository;
   @Autowired private UserRepository userRepository;

@@ -21,9 +21,13 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
+/**
+ * Service for Export operations.
+ */
 public class ExportService {
 
   private final SqlExecutorService sqlExecutorService;

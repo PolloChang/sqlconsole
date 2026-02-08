@@ -8,12 +8,16 @@ import org.springframework.core.task.support.TaskExecutorAdapter;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+/**
+ * Configuration for asynchronous task execution.
+ */
 @Configuration
 @EnableAsync
 @EnableScheduling
 public class AsyncConfig {
 
-  /**
+
+    /**
    * Creates a task executor for export tasks using virtual threads.
    *
    * @return the task executor

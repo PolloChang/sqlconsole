@@ -22,7 +22,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/sql")
 @RequiredArgsConstructor
+/**
+ * Controller for SQL execution.
+ */
 public class SqlController {
+
 
   private final SqlExecutorService sqlExecutorService;
   private final DbSessionService dbSessionService;

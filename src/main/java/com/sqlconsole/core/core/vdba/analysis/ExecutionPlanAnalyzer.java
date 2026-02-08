@@ -8,9 +8,13 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Component;
 
-/** Analyzer that heuristics to the execution plan. */
+
 @Component
+/**
+ * Analyzer for Execution Plans.
+ */
 public class ExecutionPlanAnalyzer {
+
 
   /**
    * Analyzes the execution plan tree to identify bottlenecks and generate suggestions.

@@ -7,8 +7,12 @@ import java.sql.SQLException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-/** 管理 Session 中的 JDBC 連線 */
+
 @Service
+/**
+ * Service for Database Sessions.
+ * 管理 Session 中的 JDBC 連線
+ */
 public class DbSessionService {
 
   @Autowired private DbConfigService dbConfigService;

@@ -31,6 +31,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+/**
+ * Service for SQL Execution.
+ */
 public class SqlExecutorService {
 
   private final AuditService auditService;

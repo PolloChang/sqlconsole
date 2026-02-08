@@ -3,6 +3,9 @@ package com.sqlconsole.core.service;
 import com.sqlconsole.core.model.dto.SqlResult;
 import java.util.List;
 
+/**
+ * Interface for auditing SQL operations.
+ */
 public interface AuditService {
   /**
    * 檢查 SQL 是否需要審核

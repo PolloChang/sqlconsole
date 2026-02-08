@@ -12,9 +12,13 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
+
 @RestController
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
+/**
+ * Controller for User Management.
+ */
 public class UserController {
 
   private final UserService userService;

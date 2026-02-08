@@ -13,8 +13,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+
 @Controller
 @PreAuthorize("hasRole('ADMIN')")
+/**
+ * Controller for Database Configuration.
+ */
 public class DbConfigController {
 
   @Autowired private DbConfigService dbConfigService;

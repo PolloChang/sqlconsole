@@ -15,7 +15,10 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-/** [LicenseGate] */
+
+/**
+ * Controller for SQL Console.
+ */
 @Controller
 public class ConsoleController {
 

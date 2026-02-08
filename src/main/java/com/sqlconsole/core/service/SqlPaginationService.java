@@ -13,8 +13,12 @@ import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
 import org.springframework.stereotype.Service;
 
+
 @Slf4j
 @Service
+/**
+ * Service for SQL Pagination.
+ */
 public class SqlPaginationService {
 
   /**

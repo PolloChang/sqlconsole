@@ -5,12 +5,16 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/** Represents the status of a data export job. */
+
+/**
+ * Represents the status of a data export job.
+ */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ExportJobStatus {
+  
   private String jobId;
   private Status status;
   private int percentage;
@@ -18,7 +22,9 @@ public class ExportJobStatus {
   private String errorMessage;
   private long createdTime;
 
-  /** The possible states of an export job. */
+  /**
+   * The possible states of an export job.
+   */
   public enum Status {
     /** Job is queued but not started. */
     PENDING,

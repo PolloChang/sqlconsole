@@ -17,6 +17,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 /** [LicenseGate] */
 @Controller
 @RequiredArgsConstructor
+/**
+ * Controller for Virtual DBA.
+ */
 public class VirtualDbaController {
 
   private final VirtualDbaService virtualDbaService;

@@ -18,10 +18,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-/** Service for Virtual DBA diagnostics. */
+
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
+/**
+ * Service for Virtual DBA.
+ */
 public class VirtualDbaService {
 
   private final DbConfigService dbConfigService;

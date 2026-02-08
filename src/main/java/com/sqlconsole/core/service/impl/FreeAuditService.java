@@ -5,8 +5,11 @@ import com.sqlconsole.core.service.AuditService;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
-// @ConditionalOnMissingBean 意思是：如果沒有別人 (付費版) 搶著做，我就做。
+
 @Service
+/**
+ * Free implementation of AuditService (no-op).
+ */
 public class FreeAuditService implements AuditService {
 
   /**

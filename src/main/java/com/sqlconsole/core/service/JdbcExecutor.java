@@ -9,8 +9,12 @@ import java.util.Map;
 import java.util.function.Consumer;
 import org.springframework.stereotype.Component;
 
-/** 負責單純的 JDBC 執行與結果集轉換。 讓 Service 層專注於流程控制，而非 JDBC API 細節。 */
+
 @Component
+/**
+ * Executor for JDBC operations.
+ * 負責單純的 JDBC 執行與結果集轉換。 讓 Service 層專注於流程控制，而非 JDBC API 細節。
+ */
 public class JdbcExecutor {
 
   /**
